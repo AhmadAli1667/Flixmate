@@ -26,6 +26,8 @@ const readJSON = (key, fallback) => {
   }
 }
 
+const isValidHttpUrl = (value) => /^https?:\/\//i.test(value || '')
+
 export function MovieProvider({ children }) {
   const [movies, setMovies] = useState(() => readJSON(STORAGE_KEYS.movies, moviesData))
   const [ratings, setRatings] = useState(() => readJSON(STORAGE_KEYS.ratings, {}))
@@ -73,23 +75,58 @@ export function MovieProvider({ children }) {
   }, [])
 
   const addMovie = useCallback((movieInput) => {
+    const rating = Number(movieInput.rating)
+    const year = Number(movieInput.year)
+    const genre = Array.isArray(movieInput.genre) ? movieInput.genre : []
+    const leadCast = Array.isArray(movieInput.leadCast) ? movieInput.leadCast : []
+
+    if (!movieInput.title?.trim()) {
+      return { ok: false, error: 'Title is required.' }
+    }
+    if (!movieInput.director?.trim()) {
+      return { ok: false, error: 'Director is required.' }
+    }
+    if (!movieInput.synopsis?.trim()) {
+      return { ok: false, error: 'Synopsis is required.' }
+    }
+    if (!genre.length) {
+      return { ok: false, error: 'At least one genre is required.' }
+    }
+    if (!leadCast.length) {
+      return { ok: false, error: 'At least one lead cast member is required.' }
+    }
+    if (Number.isNaN(rating) || rating < 0 || rating > 10) {
+      return { ok: false, error: 'Rating must be between 0 and 10.' }
+    }
+    if (Number.isNaN(year) || year < 1900 || year > 2026) {
+      return { ok: false, error: 'Year must be between 1900 and 2026.' }
+    }
+    if (!isValidHttpUrl(movieInput.posterUrl)) {
+      return { ok: false, error: 'Poster URL must start with http:// or https://.' }
+    }
+    if (!isValidHttpUrl(movieInput.trailerLink)) {
+      return { ok: false, error: 'Trailer link must start with http:// or https://.' }
+    }
+
     setMovies((prev) => {
       const nextId = prev.length ? Math.max(...prev.map((m) => m.id)) + 1 : 1
       const cleanMovie = {
         id: nextId,
-        title: movieInput.title,
-        genre: movieInput.genre,
-        director: movieInput.director,
-        leadCast: movieInput.leadCast,
-        rating: Number(movieInput.rating),
-        year: Number(movieInput.year),
-        synopsis: movieInput.synopsis,
-        posterUrl: movieInput.posterUrl,
-        trailerLink: movieInput.trailerLink,
+        title: movieInput.title.trim(),
+        genre,
+        director: movieInput.director.trim(),
+        leadCast,
+        rating,
+        year,
+        synopsis: movieInput.synopsis.trim(),
+        posterUrl: movieInput.posterUrl.trim(),
+        trailerLink: movieInput.trailerLink.trim(),
         relatedPrequelSequelId: movieInput.relatedPrequelSequelId ? Number(movieInput.relatedPrequelSequelId) : null
       }
       return [cleanMovie, ...prev]
     })
+
+    return { ok: true }
   }, [])
 
   const deleteMovie = useCallback((movieId) => {
@@ -199,6 +236,53 @@ export function MovieProvider({ children }) {
     [movies]
   )
 
+  const exportBackup = useCallback(() => {
+    return JSON.stringify(
+      {
+        movies,
+        ratings,
+        watchlist,
+        logoDataUrl,
+        exportedAt: new Date().toISOString()
+      },
+      null,
+      2
+    )
+  }, [movies, ratings, watchlist, logoDataUrl])
+
+  const importBackup = useCallback((backupText) => {
+    try {
+      const data = JSON.parse(backupText)
+      if (!Array.isArray(data.movies) || typeof data.ratings !== 'object' || !Array.isArray(data.watchlist)) {
+        return { ok: false, error: 'Backup format is invalid.' }
+      }
+
+      setMovies(data.movies)
+      setRatings(data.ratings || {})
+      setWatchlist(data.watchlist || [])
+      setLogoDataUrl(typeof data.logoDataUrl === 'string' ? data.logoDataUrl : '')
+
+      return { ok: true }
+    } catch {
+      return { ok: false, error: 'Could not parse backup JSON.' }
+    }
+  }, [])
+
+  const stats = useMemo(() => {
+    const ratedCount = Object.keys(ratings).length
+    const watchlistCount = watchlist.length
+    const avgRating = movies.length
+      ? (movies.reduce((sum, movie) => sum + getEffectiveRating(movie), 0) / movies.length).toFixed(2)
+      : '0.00'
+
+    return {
+      movieCount: movies.length,
+      ratedCount,
+      watchlistCount,
+      avgRating
+    }
+  }, [movies, ratings, watchlist, getEffectiveRating])
+
   const value = useMemo(
     () => ({
       movies,
@@ -219,7 +303,10 @@ export function MovieProvider({ children }) {
       addMovie,
       deleteMovie,
       getSmartRecs,
-      getEffectiveRating
+      getEffectiveRating,
+      exportBackup,
+      importBackup,
+      stats
     }),
     [
       movies,
@@ -239,7 +326,10 @@ export function MovieProvider({ children }) {
       addMovie,
       deleteMovie,
       getSmartRecs,
-      getEffectiveRating
+      getEffectiveRating,
+      exportBackup,
+      importBackup,
+      stats
     ]
   )
 
