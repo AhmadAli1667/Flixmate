@@ -649,6 +649,44 @@ const extendedMovies = extendedTitles.map((title, index) => {
   }
 })
 
+const posterOverrides = {
+  'The Shawshank Redemption': 'https://upload.wikimedia.org/wikipedia/en/8/81/ShawshankRedemptionMoviePoster.jpg',
+  'The Godfather': 'https://upload.wikimedia.org/wikipedia/en/1/1c/Godfather_ver1.jpg',
+  'The Godfather Part II': 'https://upload.wikimedia.org/wikipedia/en/0/03/Godfather_part_ii.jpg',
+  'The Dark Knight': 'https://upload.wikimedia.org/wikipedia/en/1/1c/The_Dark_Knight_%282008_film%29.jpg',
+  'Batman Begins': 'https://upload.wikimedia.org/wikipedia/en/a/af/Batman_Begins_Poster.jpg',
+  'The Dark Knight Rises': 'https://upload.wikimedia.org/wikipedia/en/8/83/Dark_knight_rises_poster.jpg',
+  'Pulp Fiction': 'https://upload.wikimedia.org/wikipedia/en/3/3b/Pulp_Fiction_%281994%29_poster.jpg',
+  'The Lord of the Rings: The Fellowship of the Ring': 'https://upload.wikimedia.org/wikipedia/en/f/fb/Lord_Rings_Fellowship_Ring.jpg',
+  'The Lord of the Rings: The Two Towers': 'https://upload.wikimedia.org/wikipedia/en/a/a1/Lord_Rings_Two_Towers.jpg',
+  'The Lord of the Rings: The Return of the King': 'https://upload.wikimedia.org/wikipedia/en/4/48/Lord_Rings_Return_King.jpg',
+  'Fight Club': 'https://upload.wikimedia.org/wikipedia/en/f/fc/Fight_Club_poster.jpg',
+  'Forrest Gump': 'https://upload.wikimedia.org/wikipedia/en/6/67/Forrest_Gump_poster.jpg',
+  Inception: 'https://upload.wikimedia.org/wikipedia/en/2/2e/Inception_%282010%29_theatrical_poster.jpg',
+  Interstellar: 'https://upload.wikimedia.org/wikipedia/en/b/bc/Interstellar_film_poster.jpg',
+  'The Matrix': 'https://upload.wikimedia.org/wikipedia/en/d/db/The_Matrix.png',
+  'The Matrix Reloaded': 'https://upload.wikimedia.org/wikipedia/en/b/ba/Poster_-_The_Matrix_Reloaded.jpg',
+  'The Matrix Revolutions': 'https://upload.wikimedia.org/wikipedia/en/7/7b/The-matrix-revolutions_oxlati6t.png',
+  Se7en: 'https://upload.wikimedia.org/wikipedia/en/6/68/Seven_%28movie%29_poster.jpg',
+  'The Silence of the Lambs': 'https://upload.wikimedia.org/wikipedia/en/8/86/The_Silence_of_the_Lambs_poster.jpg',
+  'The Green Mile': 'https://upload.wikimedia.org/wikipedia/en/e/e2/The_Green_Mile_%28movie_poster%29.jpg',
+  'Saving Private Ryan': 'https://upload.wikimedia.org/wikipedia/en/a/ac/Saving_Private_Ryan_poster.jpg',
+  Gladiator: 'https://upload.wikimedia.org/wikipedia/en/f/fb/Gladiator_%282000_film_poster%29.png',
+  Whiplash: 'https://upload.wikimedia.org/wikipedia/en/0/01/Whiplash_poster.jpg',
+  Parasite: 'https://upload.wikimedia.org/wikipedia/en/5/53/Parasite_%282019_film%29.png',
+  Joker: 'https://upload.wikimedia.org/wikipedia/en/e/e1/Joker_%282019_film%29_poster.jpg',
+  Dune: 'https://upload.wikimedia.org/wikipedia/en/8/8e/Dune_%282021_film%29.jpg',
+  'Dune: Part Two': 'https://upload.wikimedia.org/wikipedia/en/5/52/Dune_Part_Two_poster.jpeg',
+  Oppenheimer: 'https://upload.wikimedia.org/wikipedia/en/4/4a/Oppenheimer_%28film%29.jpg',
+  'The Prestige': 'https://upload.wikimedia.org/wikipedia/en/d/d2/Prestige_poster.jpg',
+  'The Departed': 'https://upload.wikimedia.org/wikipedia/en/5/50/Departed234.jpg',
+  'The Wolf of Wall Street': 'https://upload.wikimedia.org/wikipedia/en/d/d8/The_Wolf_of_Wall_Street_%282013%29.png',
+  'Mad Max: Fury Road': 'https://upload.wikimedia.org/wikipedia/en/6/6e/Mad_Max_Fury_Road.jpg',
+  'Furiosa: A Mad Max Saga': 'https://upload.wikimedia.org/wikipedia/en/3/34/Furiosa_A_Mad_Max_Saga.jpg',
+  'Avengers: Endgame': 'https://upload.wikimedia.org/wikipedia/en/0/0d/Avengers_Endgame_poster.jpg',
+  'Avengers: Infinity War': 'https://upload.wikimedia.org/wikipedia/en/4/4d/Avengers_Infinity_War_poster.jpg'
+}
+
 const allMoviesRaw = [...coreMovies, ...extendedMovies].map((movie, index) => {
   const safeTitle = movie.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
 
@@ -661,7 +699,7 @@ const allMoviesRaw = [...coreMovies, ...extendedMovies].map((movie, index) => {
     rating: movie.rating,
     year: movie.year,
     synopsis: movie.synopsis,
-    posterUrl: `https://picsum.photos/seed/flixmate-${safeTitle}/420/620`,
+    posterUrl: posterOverrides[movie.title] || `https://picsum.photos/seed/flixmate-${safeTitle}/420/620`,
     trailerLink: `https://www.youtube.com/results?search_query=${encodeURIComponent(`${movie.title} official trailer`)}`,
     relatedTitle: movie.relatedTitle
   }

@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
-import { Film, Info, Play, SlidersHorizontal, Star } from 'lucide-react'
+import { Film, Heart, Info, Play, SlidersHorizontal, Star } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
+import { topCast } from '../data/actors'
 import { useMovies } from '../store'
 
 function MovieCard({ movie, onOpen, effectiveRating }) {
@@ -46,6 +47,10 @@ function Home({ onOpenMovie }) {
     }, 5000)
     return () => clearInterval(timer)
   }, [featuredList])
+
+  const openActor = (slug) => {
+    window.location.hash = `/actor/${slug}`
+  }
 
   return (
     <main className="mx-auto grid w-full max-w-[1400px] gap-6 px-4 py-6 md:grid-cols-[280px,1fr] md:px-8">
@@ -150,6 +155,39 @@ function Home({ onOpenMovie }) {
             </div>
           </motion.div>
         )}
+
+        <section className="rounded-2xl border border-white/10 bg-surface/60 p-4 md:p-6">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <h2 className="text-2xl font-bold text-white">Top Cast</h2>
+            <span className="text-sm text-muted">{topCast.length}</span>
+          </div>
+
+          <div className="grid gap-x-6 gap-y-4 md:grid-cols-2">
+            {topCast.map((actor) => (
+              <button
+                key={actor.slug}
+                onClick={() => openActor(actor.slug)}
+                className="group relative grid grid-cols-[76px,1fr] items-center gap-4 rounded-xl border border-white/0 p-2 text-left transition hover:border-white/10 hover:bg-black/25"
+              >
+                <div className="relative">
+                  <img
+                    src={actor.imageUrl}
+                    alt={actor.name}
+                    className="h-[76px] w-[76px] rounded-full object-cover"
+                  />
+                  <span className="absolute bottom-[-2px] right-[-2px] rounded-full bg-zinc-700 p-1 text-white">
+                    <Heart size={12} className="text-white/90" />
+                  </span>
+                </div>
+
+                <div>
+                  <p className="text-lg font-semibold text-white group-hover:text-primary">{actor.name}</p>
+                  <p className="text-lg text-muted">{actor.knownForRole}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
 
         {filteredMovies.length === 0 && (
           <div className="rounded-xl border border-white/10 bg-surface p-8 text-center">

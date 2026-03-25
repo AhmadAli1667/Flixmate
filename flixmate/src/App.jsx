@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import AdminDashboard from './components/AdminDashboard'
+import ActorPage from './components/ActorPage'
 import Home from './components/Home'
 import MovieModal from './components/MovieModal'
 import Navbar from './components/Navbar'
@@ -14,7 +15,11 @@ function App() {
     return () => window.removeEventListener('hashchange', onHashChange)
   }, [])
 
-  const isAdminRoute = path === '#/admin'
+  const rawRoute = (path || '#/').replace(/^#/, '')
+  const route = rawRoute.startsWith('/') ? rawRoute : `/${rawRoute}`
+  const actorSlug = route.startsWith('/actor/') ? decodeURIComponent(route.replace('/actor/', '')) : null
+  const isAdminRoute = route === '/admin'
+  const isActorRoute = Boolean(actorSlug)
 
   const openAdmin = () => {
     window.location.hash = '/admin'
@@ -30,6 +35,8 @@ function App() {
 
       {isAdminRoute ? (
         <AdminDashboard />
+      ) : isActorRoute ? (
+        <ActorPage actorSlug={actorSlug} />
       ) : (
         <Home onOpenMovie={(movie) => setSelectedMovie(movie)} />
       )}

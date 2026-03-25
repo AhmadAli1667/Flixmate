@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { ExternalLink, ListPlus, Star, X } from 'lucide-react'
+import { actorSlugByName } from '../data/actors'
 import { useMovies } from '../store'
 
 function StarRating({ current, onRate }) {
@@ -24,6 +25,15 @@ function StarRating({ current, onRate }) {
 
 function MovieModal({ movie, onClose }) {
   const { watchlist, toggleWatchlist, rateMovie, ratings, getSmartRecs } = useMovies()
+
+  const openActor = (name) => {
+    const slug = actorSlugByName[name]
+    if (!slug) {
+      return
+    }
+    onClose()
+    window.location.hash = `/actor/${slug}`
+  }
 
   return (
     <AnimatePresence>
@@ -57,7 +67,25 @@ function MovieModal({ movie, onClose }) {
                   {movie.year} • {movie.genre.join(' / ')} • Director: {movie.director}
                 </p>
                 <p className="text-sm text-white/90">{movie.synopsis}</p>
-                <p className="text-sm text-muted">Cast: {movie.leadCast.join(', ')}</p>
+                <p className="text-sm text-muted">
+                  Cast:{' '}
+                  {movie.leadCast.map((name, index) => {
+                    const slug = actorSlugByName[name]
+                    const isLast = index === movie.leadCast.length - 1
+                    if (!slug) {
+                      return <span key={name}>{name}{isLast ? '' : ', '}</span>
+                    }
+
+                    return (
+                      <span key={name}>
+                        <button onClick={() => openActor(name)} className="text-white hover:text-primary">
+                          {name}
+                        </button>
+                        {isLast ? '' : ', '}
+                      </span>
+                    )
+                  })}
+                </p>
 
                 <div className="flex flex-wrap items-center gap-3">
                   <button
