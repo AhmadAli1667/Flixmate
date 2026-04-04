@@ -16,6 +16,25 @@
       --text: #d6d9e0;
       --accent: #13d1a5;
       --danger: #ff5d6c;
+      --canvas-bg: radial-gradient(circle at 30% 20%, #121826 0%, var(--bg) 46%, #080a10 100%);
+      --panel-strong: rgba(11, 16, 25, 0.88);
+      --stroke: #32455a;
+    }
+
+    body[data-theme="mono"] {
+      --bg: #f4f4f4;
+      --grid: #d8d8d8;
+      --panel: rgba(255, 255, 255, 0.78);
+      --panel-border: rgba(0, 0, 0, 0.12);
+      --high: #111111;
+      --low: #747474;
+      --float: #969696;
+      --text: #1b1b1b;
+      --accent: #222222;
+      --danger: #8f1f2e;
+      --canvas-bg: radial-gradient(circle at 30% 20%, #ffffff 0%, #f1f1f1 46%, #e8e8e8 100%);
+      --panel-strong: rgba(255, 255, 255, 0.9);
+      --stroke: #4d4d4d;
     }
 
     * {
@@ -28,17 +47,23 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: radial-gradient(circle at 30% 20%, #121826 0%, var(--bg) 46%, #080a10 100%);
+      background: var(--canvas-bg);
       color: var(--text);
-      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+      font-family: "Bahnschrift", "Trebuchet MS", sans-serif;
       user-select: none;
     }
 
     #app {
       width: 100%;
       height: 100%;
+      display: grid;
+      grid-template-columns: 310px 1fr;
+    }
+
+    #workspace {
       position: relative;
-      isolation: isolate;
+      overflow: hidden;
+      border-left: 1px solid rgba(255, 255, 255, 0.06);
     }
 
     #simCanvas {
@@ -46,23 +71,18 @@
       height: 100%;
       display: block;
       cursor: crosshair;
+      background: transparent;
     }
 
     .sidebar {
-      position: absolute;
-      top: 14px;
-      left: 14px;
-      width: 290px;
-      max-height: calc(100% - 28px);
+      width: 100%;
+      max-height: 100%;
       overflow: auto;
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
-      border-radius: 14px;
+      background: linear-gradient(170deg, var(--panel-strong), var(--panel));
+      border-right: 1px solid var(--panel-border);
       backdrop-filter: blur(14px) saturate(115%);
       -webkit-backdrop-filter: blur(14px) saturate(115%);
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
       padding: 14px;
-      z-index: 5;
     }
 
     .title {
@@ -85,6 +105,20 @@
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
+    }
+
+    .gate-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      font-weight: 600;
+      letter-spacing: 0.2px;
+    }
+
+    .gate-btn .sym {
+      font-size: 13px;
+      opacity: 0.9;
     }
 
     button {
@@ -184,22 +218,56 @@
       color: #ffd6db;
     }
 
-    @media (max-width: 900px) {
+    .toolbar-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .theme-select {
+      width: 100%;
+      margin-top: 8px;
+      background: rgba(9, 11, 17, 0.83);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9px;
+      padding: 8px;
+      font-size: 12px;
+    }
+
+    @media (max-width: 980px) {
+      #app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+
       .sidebar {
-        width: calc(100% - 24px);
-        max-height: 44%;
-        top: 10px;
-        left: 12px;
+        border-right: none;
+        border-bottom: 1px solid var(--panel-border);
+        max-height: 44vh;
       }
     }
   </style>
 </head>
 <body>
   <div id="app">
-    <canvas id="simCanvas"></canvas>
-
     <aside class="sidebar">
       <h1 class="title">Circify CAD Workspace</h1>
+
+      <div class="subtitle">View</div>
+      <div class="toolbar-grid">
+        <button id="zoomInBtn">Zoom +</button>
+        <button id="zoomOutBtn">Zoom -</button>
+      </div>
+      <div class="toolbar-grid">
+        <button id="zoomResetBtn">Reset View</button>
+        <button id="downloadBtn">Download App</button>
+      </div>
+      <select class="theme-select" id="themeSelect">
+        <option value="cyber">Cyber Black</option>
+        <option value="mono">Black & White</option>
+      </select>
 
       <div class="subtitle">Add Gates</div>
       <div class="btn-grid" id="gateButtons"></div>
@@ -224,7 +292,7 @@
 
       <div class="subtitle">Controls</div>
       <div style="font-size:11px;line-height:1.5;color:#a6b7c8;">
-        LMB drag gate: move with grid snap<br />
+        LMB drag gate: move freely<br />
         LMB output pin -> input pin: connect<br />
         LMB input body: cycle 0/1/floating<br />
         MMB or Shift+LMB drag: pan viewport<br />
@@ -233,10 +301,14 @@
       </div>
     </aside>
 
-    <div class="context-menu" id="contextMenu">
-      <button class="context-item" data-action="toggle-inputs">Toggle 2/3 Inputs</button>
-      <button class="context-item danger" data-action="delete">Delete Component</button>
-    </div>
+    <section id="workspace">
+      <canvas id="simCanvas"></canvas>
+      <div class="context-menu" id="contextMenu">
+        <button class="context-item" data-action="toggle-inputs">Toggle 2/3 Inputs</button>
+        <button class="context-item danger" data-action="delete">Delete Component</button>
+      </div>
+    </section>
+
   </div>
 
   <script>
@@ -252,6 +324,7 @@
     const PIN_SNAP_RADIUS = 15;
 
     const TYPE_LIST = ["AND", "OR", "NOT", "XOR", "XNOR"];
+    const TYPE_SYMBOL = Object.freeze({ AND: "∧", OR: "∨", NOT: "¬", XOR: "⊕", XNOR: "⊙" });
 
     const PALETTE = {
       high: "#00f2ff",
@@ -327,7 +400,7 @@
       }
 
       updatePinLayout() {
-      // Rebuilds pin coordinates whenever node size or position changes.
+        // Rebuilds pin coordinates whenever node size or position changes.
         this.inputPins = [];
         if (this.inputCount > 0) {
           const step = this.height / (this.inputCount + 1);
@@ -995,6 +1068,7 @@
 
     class AppController {
       constructor() {
+        this.workspace = document.getElementById("workspace");
         this.canvas = document.getElementById("simCanvas");
         this.ctx = this.canvas.getContext("2d");
         this.backCanvas = document.createElement("canvas");
@@ -1029,6 +1103,7 @@
         this.bindUI();
         this.bindCanvasEvents();
         this.resize();
+        this.setTheme("cyber");
         this.seedDemo();
         requestAnimationFrame((t) => this.render(t));
       }
@@ -1043,13 +1118,19 @@
         const gateButtons = document.getElementById("gateButtons");
         TYPE_LIST.forEach((type) => {
           const btn = document.createElement("button");
-          btn.textContent = type;
+          btn.className = "gate-btn";
+          btn.innerHTML = `<span class="sym">${TYPE_SYMBOL[type]}</span><span>${type}</span>`;
           btn.addEventListener("click", () => this.addGate(type));
           gateButtons.appendChild(btn);
         });
 
         document.getElementById("addInputBtn").addEventListener("click", () => this.addInput());
         document.getElementById("addOutputBtn").addEventListener("click", () => this.addOutput());
+        document.getElementById("zoomInBtn").addEventListener("click", () => this.stepZoom(1.15));
+        document.getElementById("zoomOutBtn").addEventListener("click", () => this.stepZoom(0.87));
+        document.getElementById("zoomResetBtn").addEventListener("click", () => this.resetView());
+        document.getElementById("downloadBtn").addEventListener("click", () => this.downloadPage());
+        document.getElementById("themeSelect").addEventListener("change", (evt) => this.setTheme(evt.target.value));
 
         document.getElementById("saveBtn").addEventListener("click", () => {
           this.dataBox.value = this.graph.toJSON(this.viewport);
@@ -1114,6 +1195,45 @@
 
         window.addEventListener("pointerdown", () => this.hideContextMenu());
         window.addEventListener("resize", () => this.resize());
+      }
+
+      stepZoom(factor) {
+        const cx = this.canvas.clientWidth * 0.5;
+        const cy = this.canvas.clientHeight * 0.5;
+        const pre = this.clientToWorld(cx + this.canvas.getBoundingClientRect().left, cy + this.canvas.getBoundingClientRect().top);
+        this.viewport.scale = Math.max(0.2, Math.min(3.5, this.viewport.scale * factor));
+        this.viewport.tx = cx - pre.x * this.viewport.scale;
+        this.viewport.ty = cy - pre.y * this.viewport.scale;
+        this.setStatus(`Zoom: ${Math.round(this.viewport.scale * 100)}%`);
+      }
+
+      resetView() {
+        this.viewport.scale = 1;
+        this.viewport.tx = this.canvas.clientWidth * 0.12;
+        this.viewport.ty = this.canvas.clientHeight * 0.18;
+        this.setStatus("Viewport reset.");
+      }
+
+      setTheme(themeName) {
+        const mono = themeName === "mono";
+        document.body.setAttribute("data-theme", mono ? "mono" : "cyber");
+        PALETTE.high = mono ? "#111111" : "#00f2ff";
+        PALETTE.low = mono ? "#747474" : "#4a4a4a";
+        PALETTE.floating = mono ? "#9a9a9a" : "#8a7f52";
+        PALETTE.selected = mono ? "#000000" : "#13d1a5";
+        this.setStatus(`Theme changed to ${themeName === "mono" ? "black & white" : "cyber black"}.`);
+      }
+
+      downloadPage() {
+        const content = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+        const blob = new Blob([content], { type: "text/html;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "circify-workspace.html";
+        a.click();
+        URL.revokeObjectURL(url);
+        this.setStatus("Downloaded a copy of this webpage.");
       }
 
       bindCanvasEvents() {
@@ -1183,8 +1303,8 @@
             const node = this.graph.getNode(this.interaction.draggingNodeID);
             if (!node) return;
             node.setPosition(
-              snapToGrid(world.x - this.interaction.dragOffset.x),
-              snapToGrid(world.y - this.interaction.dragOffset.y)
+              world.x - this.interaction.dragOffset.x,
+              world.y - this.interaction.dragOffset.y
             );
             return;
           }
@@ -1259,22 +1379,23 @@
 
       // Keeps both front and back buffers in sync with DPI scaling.
       resize() {
-        const dpr = window.devicePixelRatio || 1;
-        const width = this.canvas.clientWidth || window.innerWidth;
-        const height = this.canvas.clientHeight || window.innerHeight;
+        const rect = this.workspace.getBoundingClientRect();
+        const width = Math.max(1, Math.floor(rect.width));
+        const height = Math.max(1, Math.floor(rect.height));
 
-        this.canvas.width = Math.floor(width * dpr);
-        this.canvas.height = Math.floor(height * dpr);
+        this.canvas.width = width;
+        this.canvas.height = height;
         this.backCanvas.width = this.canvas.width;
         this.backCanvas.height = this.canvas.height;
 
-        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        this.backCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        this.backCtx.setTransform(1, 0, 0, 1, 0, 0);
       }
 
       // Spawns a gate near the current viewport center.
       addGate(type) {
-        const centerWorld = this.clientToWorld(window.innerWidth * 0.5, window.innerHeight * 0.5);
+        const rect = this.canvas.getBoundingClientRect();
+        const centerWorld = this.clientToWorld(rect.left + rect.width * 0.5, rect.top + rect.height * 0.5);
         const x = snapToGrid(centerWorld.x - 40 + Math.random() * 40);
         const y = snapToGrid(centerWorld.y - 30 + Math.random() * 40);
 
@@ -1295,7 +1416,8 @@
 
       // Adds a tri-state input source node.
       addInput() {
-        const centerWorld = this.clientToWorld(window.innerWidth * 0.4, window.innerHeight * 0.4);
+        const rect = this.canvas.getBoundingClientRect();
+        const centerWorld = this.clientToWorld(rect.left + rect.width * 0.4, rect.top + rect.height * 0.4);
         const node = new InputSource(makeId("i"), snapToGrid(centerWorld.x), snapToGrid(centerWorld.y));
         this.graph.addNode(node);
         this.setStatus("Input source added.");
@@ -1303,7 +1425,8 @@
 
       // Adds a sink probe that displays its received logic state.
       addOutput() {
-        const centerWorld = this.clientToWorld(window.innerWidth * 0.6, window.innerHeight * 0.5);
+        const rect = this.canvas.getBoundingClientRect();
+        const centerWorld = this.clientToWorld(rect.left + rect.width * 0.6, rect.top + rect.height * 0.5);
         const node = new OutputProbe(makeId("o"), snapToGrid(centerWorld.x), snapToGrid(centerWorld.y));
         this.graph.addNode(node);
         this.setStatus("Output probe added.");
@@ -1324,8 +1447,8 @@
         if (inputs[1] && xor) this.graph.addConnection(inputs[1].id, xor.id, 1);
         if (xor && out) this.graph.addConnection(xor.id, out.id, 0);
 
-        this.viewport.tx = window.innerWidth * 0.12;
-        this.viewport.ty = window.innerHeight * 0.18;
+        this.viewport.tx = this.canvas.clientWidth * 0.12;
+        this.viewport.ty = this.canvas.clientHeight * 0.18;
       }
 
       // Shows HTML context menu near cursor and toggles relevant actions.
@@ -1601,13 +1724,13 @@
       // Frame renderer: clear buffer, draw world layers, blit to screen.
       render(timeMs) {
         const ctx = this.backCtx;
-        const width = this.canvas.clientWidth;
-        const height = this.canvas.clientHeight;
+        const width = this.canvas.width;
+        const height = this.canvas.height;
 
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, width, height);
-        ctx.fillStyle = "#0b0e14";
+        ctx.fillStyle = getComputedStyle(document.body).getPropertyValue("--bg").trim() || "#0b0e14";
         ctx.fillRect(0, 0, width, height);
         ctx.restore();
 
