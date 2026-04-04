@@ -225,6 +225,26 @@
       margin-top: 8px;
     }
 
+    .toolbar-grid.triple {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    .run-btn {
+      width: 100%;
+      margin-top: 8px;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      border-color: rgba(19, 209, 165, 0.6);
+      background: linear-gradient(165deg, rgba(19, 209, 165, 0.35), rgba(19, 209, 165, 0.08));
+    }
+
+    .run-btn:hover {
+      border-color: rgba(19, 209, 165, 0.9);
+      background: linear-gradient(165deg, rgba(19, 209, 165, 0.46), rgba(19, 209, 165, 0.12));
+    }
+
     .theme-select {
       width: 100%;
       margin-top: 8px;
@@ -262,12 +282,28 @@
       </div>
       <div class="toolbar-grid">
         <button id="zoomResetBtn">Reset View</button>
+        <button id="zoomFitBtn">Locate Circuit</button>
+      </div>
+      <div class="toolbar-grid">
         <button id="downloadBtn">Download App</button>
+        <button id="runBtn" class="run-btn">Run Simulation</button>
       </div>
       <select class="theme-select" id="themeSelect">
         <option value="cyber">Cyber Black</option>
         <option value="mono">Black & White</option>
       </select>
+
+      <div class="subtitle">Project</div>
+      <select class="theme-select" id="circuitSelect"></select>
+      <div class="toolbar-grid triple">
+        <button id="newCircuitBtn">New</button>
+        <button id="saveCircuitBtn">Save</button>
+        <button id="deleteCircuitBtn">Delete</button>
+      </div>
+      <div class="toolbar-grid">
+        <button id="undoBtn">↶ Undo</button>
+        <button id="redoBtn">↷ Redo</button>
+      </div>
 
       <div class="subtitle">Add Gates</div>
       <div class="btn-grid" id="gateButtons"></div>
@@ -304,7 +340,9 @@
     <section id="workspace">
       <canvas id="simCanvas"></canvas>
       <div class="context-menu" id="contextMenu">
-        <button class="context-item" data-action="toggle-inputs">Toggle 2/3 Inputs</button>
+        <button class="context-item" data-action="toggle-inputs">Cycle Inputs 2/3/4</button>
+        <button class="context-item" data-action="rename">Rename Component</button>
+        <button class="context-item danger" data-action="delete-wire">Delete Wire</button>
         <button class="context-item danger" data-action="delete">Delete Component</button>
       </div>
     </section>
@@ -323,12 +361,21 @@
     const GRID_SIZE = 20;
     const PIN_SNAP_RADIUS = 15;
 
-    const TYPE_LIST = ["AND", "OR", "NOT", "XOR", "XNOR"];
-    const TYPE_SYMBOL = Object.freeze({ AND: "∧", OR: "∨", NOT: "¬", XOR: "⊕", XNOR: "⊙" });
+    const TYPE_LIST = ["AND", "OR", "NOT", "XOR", "XNOR", "NAND", "NOR", "BUF"];
+    const TYPE_SYMBOL = Object.freeze({
+      AND: "∧",
+      OR: "∨",
+      NOT: "¬",
+      XOR: "⊕",
+      XNOR: "⊙",
+      NAND: "⊼",
+      NOR: "⊽",
+      BUF: "▷"
+    });
 
     const PALETTE = {
-      high: "#00f2ff",
-      low: "#4a4a4a",
+      high: "#00d15f",
+      low: "#f04d4d",
       floating: "#8a7f52",
       selected: "#13d1a5"
     };
@@ -338,7 +385,10 @@
       OR: "M -16 -12 C -5 -12 3 -10 16 0 C 3 10 -5 12 -16 12 C -10 8 -8 -8 -16 -12 Z",
       NOT: "M -14 -12 L 10 0 L -14 12 Z M 13 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0",
       XOR: "M -18 -12 C -10 -8 -8 8 -18 12 M -14 -12 C -3 -12 5 -10 18 0 C 5 10 -3 12 -14 12 C -8 8 -6 -8 -14 -12 Z",
-      XNOR: "M -18 -12 C -10 -8 -8 8 -18 12 M -14 -12 C -3 -12 5 -10 18 0 C 5 10 -3 12 -14 12 C -8 8 -6 -8 -14 -12 Z M 21 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"
+      XNOR: "M -18 -12 C -10 -8 -8 8 -18 12 M -14 -12 C -3 -12 5 -10 18 0 C 5 10 -3 12 -14 12 C -8 8 -6 -8 -14 -12 Z M 21 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0",
+      NAND: "M -14 -12 L -2 -12 C 10 -12 12 -4 12 0 C 12 4 10 12 -2 12 L -14 12 Z M 16 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0",
+      NOR: "M -16 -12 C -5 -12 3 -10 16 0 C 3 10 -5 12 -16 12 C -10 8 -8 -8 -16 -12 Z M 19 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0",
+      BUF: "M -14 -12 L 10 0 L -14 12 Z"
     };
 
     let globalIdCounter = 1;
@@ -372,6 +422,7 @@
       constructor(id, type, x, y, width = 82, height = 52) {
         this.id = id;
         this.type = type;
+        this.label = `${type}_${id}`;
         this.x = x;
         this.y = y;
         this.width = width;
@@ -439,6 +490,7 @@
         return {
           id: this.id,
           type: this.type,
+          label: this.label,
           x: this.x,
           y: this.y,
           width: this.width,
@@ -460,7 +512,7 @@
 
       toggleInputCount() {
         if (this.type === "NOT") return false;
-        this.inputCount = this.inputCount === 2 ? 3 : 2;
+        this.inputCount = this.inputCount === 2 ? 3 : (this.inputCount === 3 ? 4 : 2);
         this.inputStates = Array.from({ length: this.inputCount }, (_, i) => this.inputStates[i] ?? SIGNAL.FLOAT);
         this.updatePinLayout();
         return true;
@@ -532,6 +584,44 @@
         if (states.some((s) => s === SIGNAL.FLOAT)) return SIGNAL.FLOAT;
         const ones = states.reduce((acc, s) => acc + (s === SIGNAL.HIGH ? 1 : 0), 0);
         return ones % 2 === 0 ? SIGNAL.HIGH : SIGNAL.LOW;
+      }
+    }
+
+    class NandGate extends LogicGate {
+      constructor(id, x, y, inputCount = 2) {
+        super(id, "NAND", x, y, inputCount);
+      }
+
+      evaluate() {
+        const states = this.inputStates;
+        if (states.some((s) => s === SIGNAL.FLOAT)) return SIGNAL.FLOAT;
+        return states.every((s) => s === SIGNAL.HIGH) ? SIGNAL.LOW : SIGNAL.HIGH;
+      }
+    }
+
+    class NorGate extends LogicGate {
+      constructor(id, x, y, inputCount = 2) {
+        super(id, "NOR", x, y, inputCount);
+      }
+
+      evaluate() {
+        const states = this.inputStates;
+        if (states.some((s) => s === SIGNAL.FLOAT)) return SIGNAL.FLOAT;
+        return states.every((s) => s === SIGNAL.LOW) ? SIGNAL.HIGH : SIGNAL.LOW;
+      }
+    }
+
+    class BufferGate extends LogicGate {
+      constructor(id, x, y) {
+        super(id, "BUF", x, y, 1);
+      }
+
+      toggleInputCount() {
+        return false;
+      }
+
+      evaluate() {
+        return this.inputStates[0] ?? SIGNAL.FLOAT;
       }
     }
 
@@ -738,7 +828,6 @@
         }
 
         this.refreshTargetInputs(targetID);
-        this.propagateFrom(sourceID);
 
         return { ok: true, edge };
       }
@@ -933,6 +1022,15 @@
             case "XNOR":
               node = new XnorGate(id, record.x, record.y, record.inputCount || 2);
               break;
+            case "NAND":
+              node = new NandGate(id, record.x, record.y, record.inputCount || 2);
+              break;
+            case "NOR":
+              node = new NorGate(id, record.x, record.y, record.inputCount || 2);
+              break;
+            case "BUF":
+              node = new BufferGate(id, record.x, record.y);
+              break;
             case "INPUT":
               node = new InputSource(id, record.x, record.y);
               break;
@@ -945,6 +1043,7 @@
 
           node.width = record.width ?? node.width;
           node.height = record.height ?? node.height;
+          node.label = record.label ?? `${node.type}_${node.id}`;
           node.inputCount = record.inputCount ?? node.inputCount;
           node.inputStates = Array.from({ length: node.inputCount }, (_, i) => record.inputStates?.[i] ?? SIGNAL.FLOAT);
           node.outputState = record.outputState ?? SIGNAL.FLOAT;
@@ -1038,6 +1137,9 @@
           if (node.type === "NOT") expr = `~(${inExpr[0] || "1'bx"})`;
           if (node.type === "XOR") expr = inExpr.join(" ^ ");
           if (node.type === "XNOR") expr = `~(${inExpr.join(" ^ ")})`;
+          if (node.type === "NAND") expr = `~(${inExpr.join(" & ")})`;
+          if (node.type === "NOR") expr = `~(${inExpr.join(" | ")})`;
+          if (node.type === "BUF") expr = `${inExpr[0] || "1'bx"}`;
 
           assigns.push(`assign ${wireName} = ${expr};`);
           exprByNode.set(node.id, wireName);
@@ -1079,6 +1181,11 @@
         this.contextMenu = document.getElementById("contextMenu");
 
         this.graph = new CircuitGraph();
+        this.zoomLimits = { min: 0.45, max: 2.2 };
+        this.currentCircuitName = "Circuit 1";
+        this.circuits = new Map();
+        this.undoStack = [];
+        this.redoStack = [];
 
         this.viewport = {
           tx: 0,
@@ -1094,17 +1201,21 @@
           mouseWorld: { x: 0, y: 0 },
           connecting: null,
           snappedTarget: null,
-          clickStart: null
+          clickStart: null,
+          dragSnapshot: null
         };
 
         this.selectedNodeID = null;
         this.contextNodeID = null;
+        this.contextEdgeID = null;
 
         this.bindUI();
         this.bindCanvasEvents();
         this.resize();
         this.setTheme("cyber");
         this.seedDemo();
+        this.captureSnapshot();
+        this.saveCurrentCircuit();
         requestAnimationFrame((t) => this.render(t));
       }
 
@@ -1129,8 +1240,16 @@
         document.getElementById("zoomInBtn").addEventListener("click", () => this.stepZoom(1.15));
         document.getElementById("zoomOutBtn").addEventListener("click", () => this.stepZoom(0.87));
         document.getElementById("zoomResetBtn").addEventListener("click", () => this.resetView());
+        document.getElementById("zoomFitBtn").addEventListener("click", () => this.fitToCircuit());
         document.getElementById("downloadBtn").addEventListener("click", () => this.downloadPage());
+        document.getElementById("runBtn").addEventListener("click", () => this.runSimulation());
         document.getElementById("themeSelect").addEventListener("change", (evt) => this.setTheme(evt.target.value));
+        document.getElementById("undoBtn").addEventListener("click", () => this.undo());
+        document.getElementById("redoBtn").addEventListener("click", () => this.redo());
+        document.getElementById("newCircuitBtn").addEventListener("click", () => this.createCircuit());
+        document.getElementById("saveCircuitBtn").addEventListener("click", () => this.saveCurrentCircuit());
+        document.getElementById("deleteCircuitBtn").addEventListener("click", () => this.deleteCurrentCircuit());
+        document.getElementById("circuitSelect").addEventListener("change", (evt) => this.switchCircuit(evt.target.value));
 
         document.getElementById("saveBtn").addEventListener("click", () => {
           this.dataBox.value = this.graph.toJSON(this.viewport);
@@ -1163,30 +1282,54 @@
         });
 
         document.getElementById("clearBtn").addEventListener("click", () => {
+          this.captureSnapshot();
           this.graph.clear();
           this.selectedNodeID = null;
+          this.saveCurrentCircuit();
           this.setStatus("Circuit cleared.");
         });
 
         this.contextMenu.addEventListener("click", (evt) => {
           const action = evt.target.getAttribute("data-action");
-          if (!action || !this.contextNodeID) return;
-          const node = this.graph.getNode(this.contextNodeID);
-          if (!node) return;
+          if (!action) return;
+          const node = this.contextNodeID ? this.graph.getNode(this.contextNodeID) : null;
 
-          if (action === "delete") {
+          if (action === "delete" && node) {
+            this.captureSnapshot();
             this.graph.removeNode(node.id);
             this.selectedNodeID = null;
+            this.saveCurrentCircuit();
             this.setStatus(`Deleted ${node.type} (${node.id}).`);
           }
 
-          if (action === "toggle-inputs") {
+          if (action === "toggle-inputs" && node) {
             if (node.toggleInputCount()) {
+              this.captureSnapshot();
               this.graph.cleanupInvalidPinConnections(node.id);
-              this.graph.stabilizeAll();
+              this.saveCurrentCircuit();
               this.setStatus(`Input count changed to ${node.inputCount} for ${node.id}.`);
             } else {
               this.setStatus("Input count cannot be changed for this component.", true);
+            }
+          }
+
+          if (action === "rename" && node) {
+            const nextLabel = window.prompt("Enter new name:", node.label || node.id);
+            if (nextLabel && nextLabel.trim()) {
+              this.captureSnapshot();
+              node.label = nextLabel.trim();
+              this.saveCurrentCircuit();
+              this.setStatus(`Renamed ${node.id} to ${node.label}.`);
+            }
+          }
+
+          if (action === "delete-wire") {
+            if (this.contextEdgeID) {
+              this.captureSnapshot();
+              this.graph.removeConnection(this.contextEdgeID);
+              this.graph.stabilizeAll();
+              this.saveCurrentCircuit();
+              this.setStatus("Wire deleted.");
             }
           }
 
@@ -1201,7 +1344,7 @@
         const cx = this.canvas.clientWidth * 0.5;
         const cy = this.canvas.clientHeight * 0.5;
         const pre = this.clientToWorld(cx + this.canvas.getBoundingClientRect().left, cy + this.canvas.getBoundingClientRect().top);
-        this.viewport.scale = Math.max(0.2, Math.min(3.5, this.viewport.scale * factor));
+        this.viewport.scale = Math.max(this.zoomLimits.min, Math.min(this.zoomLimits.max, this.viewport.scale * factor));
         this.viewport.tx = cx - pre.x * this.viewport.scale;
         this.viewport.ty = cy - pre.y * this.viewport.scale;
         this.setStatus(`Zoom: ${Math.round(this.viewport.scale * 100)}%`);
@@ -1214,14 +1357,130 @@
         this.setStatus("Viewport reset.");
       }
 
+      fitToCircuit() {
+        const nodes = Array.from(this.graph.nodes.values());
+        if (nodes.length === 0) {
+          this.resetView();
+          return;
+        }
+
+        const minX = Math.min(...nodes.map((n) => n.x));
+        const minY = Math.min(...nodes.map((n) => n.y));
+        const maxX = Math.max(...nodes.map((n) => n.x + n.width));
+        const maxY = Math.max(...nodes.map((n) => n.y + n.height));
+
+        const pad = 80;
+        const contentW = Math.max(100, (maxX - minX) + pad * 2);
+        const contentH = Math.max(100, (maxY - minY) + pad * 2);
+        const sx = this.canvas.clientWidth / contentW;
+        const sy = this.canvas.clientHeight / contentH;
+        this.viewport.scale = Math.max(this.zoomLimits.min, Math.min(this.zoomLimits.max, Math.min(sx, sy)));
+
+        this.viewport.tx = this.canvas.clientWidth * 0.5 - (minX + maxX) * 0.5 * this.viewport.scale;
+        this.viewport.ty = this.canvas.clientHeight * 0.5 - (minY + maxY) * 0.5 * this.viewport.scale;
+        this.setStatus("Viewport centered on current circuit.");
+      }
+
       setTheme(themeName) {
         const mono = themeName === "mono";
         document.body.setAttribute("data-theme", mono ? "mono" : "cyber");
-        PALETTE.high = mono ? "#111111" : "#00f2ff";
-        PALETTE.low = mono ? "#747474" : "#4a4a4a";
+        PALETTE.high = "#00d15f";
+        PALETTE.low = "#f04d4d";
         PALETTE.floating = mono ? "#9a9a9a" : "#8a7f52";
         PALETTE.selected = mono ? "#000000" : "#13d1a5";
         this.setStatus(`Theme changed to ${themeName === "mono" ? "black & white" : "cyber black"}.`);
+      }
+
+      runSimulation() {
+        try {
+          this.graph.stabilizeAll();
+          this.setStatus("Simulation complete.");
+        } catch (err) {
+          this.setStatus(`Simulation error: ${err.message}`, true);
+        }
+      }
+
+      captureSnapshot() {
+        const snap = this.graph.toJSON(this.viewport);
+        this.undoStack.push(snap);
+        if (this.undoStack.length > 100) this.undoStack.shift();
+        this.redoStack.length = 0;
+      }
+
+      applySnapshot(json) {
+        const loaded = this.graph.fromJSON(json);
+        if (loaded.viewport) {
+          this.viewport = {
+            tx: loaded.viewport.tx ?? 0,
+            ty: loaded.viewport.ty ?? 0,
+            scale: Math.max(this.zoomLimits.min, Math.min(this.zoomLimits.max, loaded.viewport.scale ?? 1))
+          };
+        }
+      }
+
+      undo() {
+        if (this.undoStack.length === 0) return;
+        const current = this.graph.toJSON(this.viewport);
+        this.redoStack.push(current);
+        const prev = this.undoStack.pop();
+        this.applySnapshot(prev);
+        this.setStatus("Undo applied.");
+      }
+
+      redo() {
+        if (this.redoStack.length === 0) return;
+        const current = this.graph.toJSON(this.viewport);
+        this.undoStack.push(current);
+        const next = this.redoStack.pop();
+        this.applySnapshot(next);
+        this.setStatus("Redo applied.");
+      }
+
+      refreshCircuitList() {
+        const select = document.getElementById("circuitSelect");
+        const names = Array.from(this.circuits.keys());
+        select.innerHTML = "";
+        names.forEach((name) => {
+          const opt = document.createElement("option");
+          opt.value = name;
+          opt.textContent = name;
+          if (name === this.currentCircuitName) opt.selected = true;
+          select.appendChild(opt);
+        });
+      }
+
+      saveCurrentCircuit() {
+        this.circuits.set(this.currentCircuitName, this.graph.toJSON(this.viewport));
+        this.refreshCircuitList();
+        this.setStatus(`Saved ${this.currentCircuitName}.`);
+      }
+
+      createCircuit() {
+        const name = window.prompt("New circuit name:", `Circuit ${this.circuits.size + 1}`);
+        if (!name || !name.trim()) return;
+        this.currentCircuitName = name.trim();
+        this.captureSnapshot();
+        this.graph.clear();
+        this.viewport = { tx: this.canvas.clientWidth * 0.12, ty: this.canvas.clientHeight * 0.18, scale: 1 };
+        this.saveCurrentCircuit();
+      }
+
+      switchCircuit(name) {
+        if (!this.circuits.has(name)) return;
+        this.currentCircuitName = name;
+        this.applySnapshot(this.circuits.get(name));
+        this.setStatus(`Switched to ${name}.`);
+      }
+
+      deleteCurrentCircuit() {
+        if (this.circuits.size <= 1) {
+          this.setStatus("At least one circuit must remain.", true);
+          return;
+        }
+        this.circuits.delete(this.currentCircuitName);
+        this.currentCircuitName = Array.from(this.circuits.keys())[0];
+        this.switchCircuit(this.currentCircuitName);
+        this.refreshCircuitList();
       }
 
       downloadPage() {
@@ -1241,9 +1500,15 @@
           evt.preventDefault();
           const world = this.clientToWorld(evt.clientX, evt.clientY);
           const node = this.pickNodeAt(world.x, world.y);
+          const edge = node ? null : this.pickEdgeAt(world.x, world.y);
           if (node) {
             this.contextNodeID = node.id;
-            this.showContextMenu(evt.clientX, evt.clientY, node);
+            this.contextEdgeID = null;
+            this.showContextMenu(evt.clientX, evt.clientY, node, null);
+          } else if (edge) {
+            this.contextNodeID = null;
+            this.contextEdgeID = edge.id;
+            this.showContextMenu(evt.clientX, evt.clientY, null, edge);
           } else {
             this.hideContextMenu();
           }
@@ -1276,6 +1541,7 @@
           const node = this.pickNodeAt(world.x, world.y);
           if (node) {
             this.selectedNodeID = node.id;
+            this.interaction.dragSnapshot = this.graph.toJSON(this.viewport);
             this.interaction.draggingNodeID = node.id;
             this.interaction.dragOffset = {
               x: world.x - node.x,
@@ -1339,6 +1605,8 @@
               if (!result.ok) {
                 this.setStatus(result.reason, true);
               } else {
+                this.captureSnapshot();
+                this.saveCurrentCircuit();
                 this.setStatus("Connection created.");
               }
             }
@@ -1350,17 +1618,21 @@
           if (evt.button === 0 && draggingNodeID) {
             const node = this.graph.getNode(draggingNodeID);
             if (!node) return;
+            if (this.interaction.dragSnapshot) {
+              this.undoStack.push(this.interaction.dragSnapshot);
+              if (this.undoStack.length > 100) this.undoStack.shift();
+              this.redoStack.length = 0;
+              this.interaction.dragSnapshot = null;
+              this.saveCurrentCircuit();
+            }
             const clickStart = this.interaction.clickStart;
             if (node.type === "INPUT" && clickStart) {
               const dragDistance = worldDistance({ x: clickStart.x, y: clickStart.y }, world);
               if (dragDistance < 4) {
+                this.captureSnapshot();
                 node.cycleState();
-                try {
-                  this.graph.propagateFrom(node.id);
-                } catch (err) {
-                  this.setStatus(err.message, true);
-                }
-                this.setStatus(`Input ${node.id} -> ${node.outputState === null ? "floating" : node.outputState}`);
+                this.saveCurrentCircuit();
+                this.setStatus(`Input ${node.id} prepared as ${node.outputState === null ? "floating" : node.outputState}. Press Run.`);
               }
             }
           }
@@ -1370,7 +1642,7 @@
           evt.preventDefault();
           const pre = this.clientToWorld(evt.clientX, evt.clientY);
           const delta = evt.deltaY < 0 ? 1.1 : 0.9;
-          const nextScale = Math.max(0.2, Math.min(3.5, this.viewport.scale * delta));
+          const nextScale = Math.max(this.zoomLimits.min, Math.min(this.zoomLimits.max, this.viewport.scale * delta));
           this.viewport.scale = nextScale;
           this.viewport.tx = evt.clientX - pre.x * this.viewport.scale;
           this.viewport.ty = evt.clientY - pre.y * this.viewport.scale;
@@ -1394,6 +1666,7 @@
 
       // Spawns a gate near the current viewport center.
       addGate(type) {
+        this.captureSnapshot();
         const rect = this.canvas.getBoundingClientRect();
         const centerWorld = this.clientToWorld(rect.left + rect.width * 0.5, rect.top + rect.height * 0.5);
         const x = snapToGrid(centerWorld.x - 40 + Math.random() * 40);
@@ -1406,29 +1679,37 @@
         if (type === "NOT") node = new NotGate(id, x, y);
         if (type === "XOR") node = new XorGate(id, x, y, 2);
         if (type === "XNOR") node = new XnorGate(id, x, y, 2);
+        if (type === "NAND") node = new NandGate(id, x, y, 2);
+        if (type === "NOR") node = new NorGate(id, x, y, 2);
+        if (type === "BUF") node = new BufferGate(id, x, y);
 
         if (node) {
           this.graph.addNode(node);
           this.selectedNodeID = node.id;
+          this.saveCurrentCircuit();
           this.setStatus(`${type} gate added.`);
         }
       }
 
       // Adds a tri-state input source node.
       addInput() {
+        this.captureSnapshot();
         const rect = this.canvas.getBoundingClientRect();
         const centerWorld = this.clientToWorld(rect.left + rect.width * 0.4, rect.top + rect.height * 0.4);
         const node = new InputSource(makeId("i"), snapToGrid(centerWorld.x), snapToGrid(centerWorld.y));
         this.graph.addNode(node);
+        this.saveCurrentCircuit();
         this.setStatus("Input source added.");
       }
 
       // Adds a sink probe that displays its received logic state.
       addOutput() {
+        this.captureSnapshot();
         const rect = this.canvas.getBoundingClientRect();
         const centerWorld = this.clientToWorld(rect.left + rect.width * 0.6, rect.top + rect.height * 0.5);
         const node = new OutputProbe(makeId("o"), snapToGrid(centerWorld.x), snapToGrid(centerWorld.y));
         this.graph.addNode(node);
+        this.saveCurrentCircuit();
         this.setStatus("Output probe added.");
       }
 
@@ -1452,9 +1733,17 @@
       }
 
       // Shows HTML context menu near cursor and toggles relevant actions.
-      showContextMenu(clientX, clientY, node) {
+      showContextMenu(clientX, clientY, node, edge) {
         const toggleItem = this.contextMenu.querySelector("[data-action='toggle-inputs']");
-        toggleItem.style.display = (node.type === "AND" || node.type === "OR" || node.type === "XOR" || node.type === "XNOR") ? "block" : "none";
+        const renameItem = this.contextMenu.querySelector("[data-action='rename']");
+        const deleteNodeItem = this.contextMenu.querySelector("[data-action='delete']");
+        const deleteWireItem = this.contextMenu.querySelector("[data-action='delete-wire']");
+
+        const toggleAllowed = !!node && (node.type === "AND" || node.type === "OR" || node.type === "XOR" || node.type === "XNOR" || node.type === "NAND" || node.type === "NOR");
+        toggleItem.style.display = toggleAllowed ? "block" : "none";
+        renameItem.style.display = node ? "block" : "none";
+        deleteNodeItem.style.display = node ? "block" : "none";
+        deleteWireItem.style.display = edge ? "block" : "none";
 
         this.contextMenu.style.left = `${clientX + 6}px`;
         this.contextMenu.style.top = `${clientY + 6}px`;
@@ -1465,6 +1754,7 @@
       hideContextMenu() {
         this.contextMenu.style.display = "none";
         this.contextNodeID = null;
+        this.contextEdgeID = null;
       }
 
       // Inverse viewport transform: screen pointer to world coordinates.
@@ -1527,6 +1817,26 @@
           }
         }
         return best;
+      }
+
+      pickEdgeAt(wx, wy) {
+        let best = null;
+        for (const edge of this.graph.edges.values()) {
+          const source = this.graph.getNode(edge.sourceID);
+          const target = this.graph.getNode(edge.targetID);
+          if (!source || !target) continue;
+          const p0 = source.outputPin;
+          const p3 = target.inputPins[edge.targetPinIndex];
+          if (!p0 || !p3) continue;
+          const dx = Math.max(44, Math.abs(p3.x - p0.x) * 0.5);
+          const p1 = { x: p0.x + dx, y: p0.y };
+          const p2 = { x: p3.x - dx, y: p3.y };
+          const d = distanceToBezierApprox({ x: wx, y: wy }, p0, p1, p2, p3);
+          if (d < 9 && (!best || d < best.distance)) {
+            best = { edge, distance: d };
+          }
+        }
+        return best ? best.edge : null;
       }
 
       // Draws viewport-aware blueprint grid over the visible world area.
@@ -1682,7 +1992,7 @@
         ctx.fillStyle = "#94a9bc";
         ctx.font = "10px Consolas, monospace";
         ctx.textAlign = "left";
-        ctx.fillText(`${node.type} ${node.id}`, node.x + 6, node.y - 6);
+        ctx.fillText(node.label || `${node.type} ${node.id}`, node.x + 6, node.y - 6);
         ctx.restore();
       }
 
@@ -1784,6 +2094,18 @@
         x: (uuu * p0.x) + (3 * uu * t * p1.x) + (3 * u * tt * p2.x) + (ttt * p3.x),
         y: (uuu * p0.y) + (3 * uu * t * p1.y) + (3 * u * tt * p2.y) + (ttt * p3.y)
       };
+    }
+
+    function distanceToBezierApprox(point, p0, p1, p2, p3) {
+      let best = Infinity;
+      const steps = 28;
+      for (let i = 0; i <= steps; i += 1) {
+        const t = i / steps;
+        const sample = cubicBezierPoint(p0, p1, p2, p3, t);
+        const d = worldDistance(point, sample);
+        if (d < best) best = d;
+      }
+      return best;
     }
 
     new AppController();
