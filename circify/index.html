@@ -10,9 +10,9 @@
       --grid: #1c222d;
       --panel: rgba(22, 28, 38, 0.58);
       --panel-border: rgba(255, 255, 255, 0.12);
-      --high: #00f2ff;
-      --low: #4a4a4a;
-      --float: #8a7f52;
+      --high: #00d15f;
+      --low: #f04d4d;
+      --float: #f04d4d;
       --text: #d6d9e0;
       --accent: #13d1a5;
       --danger: #ff5d6c;
@@ -99,6 +99,45 @@
       color: #9fb5c8;
       letter-spacing: 0.8px;
       text-transform: uppercase;
+    }
+
+    .panel-section {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      margin: 8px 0;
+      overflow: hidden;
+      background: rgba(9, 13, 20, 0.4);
+    }
+
+    .panel-section > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 9px 10px;
+      font-size: 11px;
+      color: #9fb5c8;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 700;
+    }
+
+    .panel-section > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .panel-arrow {
+      transition: transform 140ms ease;
+      opacity: 0.9;
+    }
+
+    .panel-section[open] .panel-arrow {
+      transform: rotate(180deg);
+    }
+
+    .section-body {
+      padding: 0 10px 10px;
     }
 
     .btn-grid {
@@ -256,6 +295,132 @@
       font-size: 12px;
     }
 
+    .workspace-tools {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 190px;
+      display: grid;
+      gap: 8px;
+      z-index: 8;
+    }
+
+    .zoom-dock {
+      position: absolute;
+      right: 14px;
+      bottom: 14px;
+      width: 200px;
+      padding: 8px 10px;
+      border-radius: 10px;
+      background: rgba(12, 18, 28, 0.84);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(6px);
+      z-index: 8;
+    }
+
+    .analysis-overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(6, 10, 18, 0.72);
+      z-index: 40;
+      padding: 16px;
+    }
+
+    .analysis-window {
+      width: min(980px, 94vw);
+      max-height: 90vh;
+      overflow: auto;
+      border-radius: 12px;
+      background: rgba(12, 18, 30, 0.97);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      padding: 12px;
+    }
+
+    .analysis-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .analysis-actions {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .analysis-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      max-height: 56vh;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+    }
+
+    .logic-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 11px;
+    }
+
+    .logic-table th,
+    .logic-table td {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 4px 6px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    .logic-table th {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .tt-one {
+      color: #00d15f;
+      font-weight: 700;
+    }
+
+    .tt-zero {
+      color: #f04d4d;
+      font-weight: 700;
+    }
+
+    .expr-box {
+      margin-top: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      padding: 8px;
+      font-family: Consolas, monospace;
+      font-size: 11px;
+      background: rgba(0, 0, 0, 0.22);
+      min-height: 54px;
+      overflow-wrap: anywhere;
+    }
+
+    .zoom-label {
+      font-size: 11px;
+      color: #adc4d8;
+      margin-bottom: 6px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    #zoomSlider {
+      width: 100%;
+    }
+
     @media (max-width: 980px) {
       #app {
         grid-template-columns: 1fr;
@@ -275,75 +440,147 @@
     <aside class="sidebar">
       <h1 class="title">Circify CAD Workspace</h1>
 
-      <div class="subtitle">View</div>
-      <div class="toolbar-grid">
-        <button id="zoomInBtn">Zoom +</button>
-        <button id="zoomOutBtn">Zoom -</button>
-      </div>
-      <div class="toolbar-grid">
-        <button id="zoomResetBtn">Reset View</button>
-        <button id="zoomFitBtn">Locate Circuit</button>
-      </div>
-      <div class="toolbar-grid">
-        <button id="downloadBtn">Download App</button>
-        <button id="runBtn" class="run-btn">Run Simulation</button>
-      </div>
-      <select class="theme-select" id="themeSelect">
-        <option value="cyber">Cyber Black</option>
-        <option value="mono">Black & White</option>
-      </select>
+      <details class="panel-section" open>
+        <summary>View <span class="panel-arrow">▾</span></summary>
+        <div class="section-body">
+          <div class="toolbar-grid">
+            <button id="zoomInBtn">Zoom +</button>
+            <button id="zoomOutBtn">Zoom -</button>
+          </div>
+          <div class="toolbar-grid">
+            <button id="zoomResetBtn">Reset View</button>
+            <button id="downloadBtn">Download App</button>
+          </div>
+          <select class="theme-select" id="themeSelect">
+            <option value="cyber">Cyber Black</option>
+            <option value="mono">Black & White</option>
+          </select>
+        </div>
+      </details>
 
-      <div class="subtitle">Project</div>
-      <select class="theme-select" id="circuitSelect"></select>
-      <div class="toolbar-grid triple">
-        <button id="newCircuitBtn">New</button>
-        <button id="saveCircuitBtn">Save</button>
-        <button id="deleteCircuitBtn">Delete</button>
-      </div>
-      <div class="toolbar-grid">
-        <button id="undoBtn">↶ Undo</button>
-        <button id="redoBtn">↷ Redo</button>
-      </div>
+      <details class="panel-section" open>
+        <summary>Project <span class="panel-arrow">▾</span></summary>
+        <div class="section-body">
+          <select class="theme-select" id="circuitSelect"></select>
+          <div class="toolbar-grid triple">
+            <button id="newCircuitBtn">New</button>
+            <button id="saveCircuitBtn">Save</button>
+            <button id="deleteCircuitBtn">Delete</button>
+          </div>
+          <div class="toolbar-grid">
+            <button id="undoBtn">↶ Undo</button>
+            <button id="redoBtn">↷ Redo</button>
+          </div>
+        </div>
+      </details>
 
-      <div class="subtitle">Add Gates</div>
-      <div class="btn-grid" id="gateButtons"></div>
+      <details class="panel-section" open>
+        <summary>Gates <span class="panel-arrow">▾</span></summary>
+        <div class="section-body">
+          <div class="btn-grid" id="gateButtons"></div>
+        </div>
+      </details>
 
-      <div class="subtitle">I/O</div>
-      <div class="io-grid">
-        <button id="addInputBtn">Add Input</button>
-        <button id="addOutputBtn">Add Output</button>
-      </div>
+      <details class="panel-section" open>
+        <summary>I/O <span class="panel-arrow">▾</span></summary>
+        <div class="section-body">
+          <div class="io-grid">
+            <button id="addInputBtn">Add Input</button>
+            <button id="addOutputBtn">Add Output</button>
+          </div>
+        </div>
+      </details>
 
-      <div class="subtitle">Data</div>
-      <div class="io-grid">
-        <button id="saveBtn">Save JSON</button>
-        <button id="loadBtn">Load JSON</button>
-      </div>
-      <div class="io-grid">
-        <button id="verilogBtn">Export Verilog</button>
-        <button id="clearBtn">Clear Circuit</button>
-      </div>
-      <textarea id="dataBox" spellcheck="false" placeholder="JSON / Verilog output"></textarea>
-      <div class="status" id="statusLine">Ready.</div>
+      <details class="panel-section" open>
+        <summary>Verilog / Data <span class="panel-arrow">▾</span></summary>
+        <div class="section-body">
+          <div class="io-grid">
+            <button id="saveBtn">Save JSON</button>
+            <button id="loadBtn">Load JSON</button>
+          </div>
+          <div class="io-grid">
+            <button id="verilogBtn">Export Verilog</button>
+            <button id="clearBtn">Clear Circuit</button>
+          </div>
+          <textarea id="dataBox" spellcheck="false" placeholder="JSON / Verilog output"></textarea>
+          <div class="status" id="statusLine">Ready.</div>
+        </div>
+      </details>
 
-      <div class="subtitle">Controls</div>
-      <div style="font-size:11px;line-height:1.5;color:#a6b7c8;">
-        LMB drag gate: move freely<br />
-        LMB output pin -> input pin: connect<br />
-        LMB input body: cycle 0/1/floating<br />
-        MMB or Shift+LMB drag: pan viewport<br />
-        Wheel: zoom at cursor<br />
-        RMB on component: open context menu
-      </div>
+      <details class="panel-section">
+        <summary>Controls <span class="panel-arrow">▾</span></summary>
+        <div class="section-body" style="font-size:11px;line-height:1.5;color:#a6b7c8;">
+          LMB drag gate: move freely<br />
+          LMB output pin -> input pin: connect<br />
+          LMB input body: cycle 0/1/floating<br />
+          MMB or Shift+LMB drag: pan viewport<br />
+          Wheel: zoom to active circuit area<br />
+          RMB on component/wire: open context menu
+        </div>
+      </details>
+
+      <details class="panel-section">
+        <summary>AI Helper <span class="panel-arrow">▾</span></summary>
+        <div class="section-body">
+          <select class="theme-select" id="aiProviderSelect">
+            <option value="chatgpt">ChatGPT Free</option>
+            <option value="gemini">Gemini Free</option>
+            <option value="perplexity">Perplexity Free</option>
+          </select>
+          <textarea id="aiPromptBox" spellcheck="false" placeholder="Ask about your circuit logic..."></textarea>
+          <div class="io-grid">
+            <button id="askAIBtn">Ask AI</button>
+            <button id="insertCircuitSummaryBtn">Use Circuit Summary</button>
+          </div>
+        </div>
+      </details>
     </aside>
 
     <section id="workspace">
       <canvas id="simCanvas"></canvas>
+      <div class="workspace-tools">
+        <button id="locateTopBtn">Locate Circuit</button>
+        <button id="runTopBtn" class="run-btn">Run Simulation</button>
+        <button id="analyzeTopBtn">Truth Table / K-Map</button>
+      </div>
+      <div class="zoom-dock">
+        <div class="zoom-label"><span>Zoom</span><span id="zoomPct">100%</span></div>
+        <input id="zoomSlider" type="range" min="70" max="180" value="100" />
+      </div>
       <div class="context-menu" id="contextMenu">
         <button class="context-item" data-action="toggle-inputs">Cycle Inputs 2/3/4</button>
         <button class="context-item" data-action="rename">Rename Component</button>
         <button class="context-item danger" data-action="delete-wire">Delete Wire</button>
         <button class="context-item danger" data-action="delete">Delete Component</button>
+      </div>
+
+      <div class="analysis-overlay" id="analysisOverlay">
+        <div class="analysis-window">
+          <div class="analysis-header">
+            <strong>Logic Analysis</strong>
+            <button id="closeAnalysisBtn">Close</button>
+          </div>
+          <div class="analysis-actions">
+            <button id="buildTruthTableBtn">Build Truth Table</button>
+            <select id="kmapOutputSelect" class="theme-select" style="margin-top:0;">
+              <option value="">Select Output</option>
+            </select>
+            <button id="drawKmapBtn">Draw K-Map</button>
+            <button id="drawSimplifiedBtn">Draw Simplified Circuit</button>
+          </div>
+          <div class="analysis-grid">
+            <div>
+              <div class="subtitle" style="margin-top:0;">Truth Table</div>
+              <div class="table-wrap" id="truthTableWrap"></div>
+            </div>
+            <div>
+              <div class="subtitle" style="margin-top:0;">K-Map</div>
+              <div class="table-wrap" id="kmapWrap"></div>
+              <div class="subtitle">Simplified SOP</div>
+              <div class="expr-box" id="simplifiedExprBox">Build truth table first.</div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -376,7 +613,7 @@
     const PALETTE = {
       high: "#00d15f",
       low: "#f04d4d",
-      floating: "#8a7f52",
+      floating: "#f04d4d",
       selected: "#13d1a5"
     };
 
@@ -403,7 +640,7 @@
     function signalColor(signal) {
       if (signal === SIGNAL.HIGH) return PALETTE.high;
       if (signal === SIGNAL.LOW) return PALETTE.low;
-      return PALETTE.floating;
+      return PALETTE.low;
     }
 
     // Keeps geometry aligned to blueprint grid increments.
@@ -804,6 +1041,9 @@
         if (target.type === "INPUT") {
           return { ok: false, reason: "Cannot drive an InputSource." };
         }
+        if (source.type === "INPUT" && (this.adjacency.get(sourceID)?.size || 0) >= 1) {
+          return { ok: false, reason: "InputSource supports only one outgoing wire." };
+        }
         if (!target.inputPins[targetPinIndex]) {
           return { ok: false, reason: "Invalid target pin." };
         }
@@ -1179,9 +1419,20 @@
         this.statusLine = document.getElementById("statusLine");
         this.dataBox = document.getElementById("dataBox");
         this.contextMenu = document.getElementById("contextMenu");
+        this.analysisOverlay = document.getElementById("analysisOverlay");
+        this.truthTableWrap = document.getElementById("truthTableWrap");
+        this.kmapWrap = document.getElementById("kmapWrap");
+        this.simplifiedExprBox = document.getElementById("simplifiedExprBox");
+        this.analysisState = {
+          rows: [],
+          inputNodes: [],
+          outputNodes: [],
+          selectedOutputID: null,
+          simplified: null
+        };
 
         this.graph = new CircuitGraph();
-        this.zoomLimits = { min: 0.45, max: 2.2 };
+        this.zoomLimits = { min: 0.7, max: 1.8 };
         this.currentCircuitName = "Circuit 1";
         this.circuits = new Map();
         this.undoStack = [];
@@ -1216,6 +1467,7 @@
         this.seedDemo();
         this.captureSnapshot();
         this.saveCurrentCircuit();
+        this.updateZoomUI();
         requestAnimationFrame((t) => this.render(t));
       }
 
@@ -1240,9 +1492,10 @@
         document.getElementById("zoomInBtn").addEventListener("click", () => this.stepZoom(1.15));
         document.getElementById("zoomOutBtn").addEventListener("click", () => this.stepZoom(0.87));
         document.getElementById("zoomResetBtn").addEventListener("click", () => this.resetView());
-        document.getElementById("zoomFitBtn").addEventListener("click", () => this.fitToCircuit());
+        document.getElementById("locateTopBtn").addEventListener("click", () => this.fitToCircuit());
         document.getElementById("downloadBtn").addEventListener("click", () => this.downloadPage());
-        document.getElementById("runBtn").addEventListener("click", () => this.runSimulation());
+        document.getElementById("runTopBtn").addEventListener("click", () => this.runSimulation());
+        document.getElementById("analyzeTopBtn").addEventListener("click", () => this.openAnalysisPanel());
         document.getElementById("themeSelect").addEventListener("change", (evt) => this.setTheme(evt.target.value));
         document.getElementById("undoBtn").addEventListener("click", () => this.undo());
         document.getElementById("redoBtn").addEventListener("click", () => this.redo());
@@ -1250,6 +1503,23 @@
         document.getElementById("saveCircuitBtn").addEventListener("click", () => this.saveCurrentCircuit());
         document.getElementById("deleteCircuitBtn").addEventListener("click", () => this.deleteCurrentCircuit());
         document.getElementById("circuitSelect").addEventListener("change", (evt) => this.switchCircuit(evt.target.value));
+        document.getElementById("zoomSlider").addEventListener("input", (evt) => {
+          const nextScale = Number(evt.target.value) / 100;
+          const focus = this.getFocusWorldPoint();
+          this.applyZoom(nextScale, focus);
+        });
+        document.getElementById("closeAnalysisBtn").addEventListener("click", () => this.closeAnalysisPanel());
+        document.getElementById("buildTruthTableBtn").addEventListener("click", () => this.buildTruthTable());
+        document.getElementById("drawKmapBtn").addEventListener("click", () => this.drawKmapForSelection());
+        document.getElementById("drawSimplifiedBtn").addEventListener("click", () => this.drawSimplifiedCircuit());
+        document.getElementById("kmapOutputSelect").addEventListener("change", (evt) => {
+          this.analysisState.selectedOutputID = evt.target.value || null;
+        });
+        document.getElementById("insertCircuitSummaryBtn").addEventListener("click", () => {
+          document.getElementById("aiPromptBox").value = this.getCircuitSummaryPrompt();
+          this.setStatus("Circuit summary copied into AI prompt box.");
+        });
+        document.getElementById("askAIBtn").addEventListener("click", () => this.askAIProvider());
 
         document.getElementById("saveBtn").addEventListener("click", () => {
           this.dataBox.value = this.graph.toJSON(this.viewport);
@@ -1263,9 +1533,11 @@
               this.viewport = {
                 tx: loaded.viewport.tx ?? 0,
                 ty: loaded.viewport.ty ?? 0,
-                scale: loaded.viewport.scale ?? 1
+                scale: Math.max(this.zoomLimits.min, Math.min(this.zoomLimits.max, loaded.viewport.scale ?? 1))
               };
             }
+            this.clampViewportToCircuit();
+            this.updateZoomUI();
             this.setStatus("Circuit restored from JSON.");
           } catch (err) {
             this.setStatus(`Load failed: ${err.message}`, true);
@@ -1336,24 +1608,78 @@
           this.hideContextMenu();
         });
 
-        window.addEventListener("pointerdown", () => this.hideContextMenu());
+        window.addEventListener("pointerdown", (evt) => {
+          if (evt.button === 2) return;
+          if (this.contextMenu.style.display === "block" && this.contextMenu.contains(evt.target)) return;
+          this.hideContextMenu();
+        });
         window.addEventListener("resize", () => this.resize());
       }
 
       stepZoom(factor) {
-        const cx = this.canvas.clientWidth * 0.5;
-        const cy = this.canvas.clientHeight * 0.5;
-        const pre = this.clientToWorld(cx + this.canvas.getBoundingClientRect().left, cy + this.canvas.getBoundingClientRect().top);
-        this.viewport.scale = Math.max(this.zoomLimits.min, Math.min(this.zoomLimits.max, this.viewport.scale * factor));
-        this.viewport.tx = cx - pre.x * this.viewport.scale;
-        this.viewport.ty = cy - pre.y * this.viewport.scale;
+        const focus = this.getFocusWorldPoint();
+        const nextScale = Math.max(this.zoomLimits.min, Math.min(this.zoomLimits.max, this.viewport.scale * factor));
+        this.applyZoom(nextScale, focus);
         this.setStatus(`Zoom: ${Math.round(this.viewport.scale * 100)}%`);
+      }
+
+      getFocusWorldPoint() {
+        const selected = this.selectedNodeID ? this.graph.getNode(this.selectedNodeID) : null;
+        if (selected) {
+          return { x: selected.x + selected.width * 0.5, y: selected.y + selected.height * 0.5 };
+        }
+
+        const nodes = Array.from(this.graph.nodes.values());
+        if (nodes.length === 0) {
+          return this.clientToWorld(this.canvas.getBoundingClientRect().left + this.canvas.clientWidth * 0.5, this.canvas.getBoundingClientRect().top + this.canvas.clientHeight * 0.5);
+        }
+        const minX = Math.min(...nodes.map((n) => n.x));
+        const minY = Math.min(...nodes.map((n) => n.y));
+        const maxX = Math.max(...nodes.map((n) => n.x + n.width));
+        const maxY = Math.max(...nodes.map((n) => n.y + n.height));
+        return { x: (minX + maxX) * 0.5, y: (minY + maxY) * 0.5 };
+      }
+
+      applyZoom(nextScale, focusWorld) {
+        this.viewport.scale = Math.max(this.zoomLimits.min, Math.min(this.zoomLimits.max, nextScale));
+        this.viewport.tx = this.canvas.clientWidth * 0.5 - focusWorld.x * this.viewport.scale;
+        this.viewport.ty = this.canvas.clientHeight * 0.5 - focusWorld.y * this.viewport.scale;
+        this.clampViewportToCircuit();
+        this.updateZoomUI();
+      }
+
+      clampViewportToCircuit() {
+        const nodes = Array.from(this.graph.nodes.values());
+        if (nodes.length === 0) return;
+
+        const minX = Math.min(...nodes.map((n) => n.x)) - 220;
+        const minY = Math.min(...nodes.map((n) => n.y)) - 220;
+        const maxX = Math.max(...nodes.map((n) => n.x + n.width)) + 220;
+        const maxY = Math.max(...nodes.map((n) => n.y + n.height)) + 220;
+
+        const minTx = this.canvas.clientWidth - maxX * this.viewport.scale;
+        const maxTx = -minX * this.viewport.scale;
+        const minTy = this.canvas.clientHeight - maxY * this.viewport.scale;
+        const maxTy = -minY * this.viewport.scale;
+
+        this.viewport.tx = Math.min(maxTx, Math.max(minTx, this.viewport.tx));
+        this.viewport.ty = Math.min(maxTy, Math.max(minTy, this.viewport.ty));
+      }
+
+      updateZoomUI() {
+        const pct = Math.round(this.viewport.scale * 100);
+        const slider = document.getElementById("zoomSlider");
+        const label = document.getElementById("zoomPct");
+        if (slider) slider.value = String(pct);
+        if (label) label.textContent = `${pct}%`;
       }
 
       resetView() {
         this.viewport.scale = 1;
         this.viewport.tx = this.canvas.clientWidth * 0.12;
         this.viewport.ty = this.canvas.clientHeight * 0.18;
+        this.clampViewportToCircuit();
+        this.updateZoomUI();
         this.setStatus("Viewport reset.");
       }
 
@@ -1378,6 +1704,7 @@
 
         this.viewport.tx = this.canvas.clientWidth * 0.5 - (minX + maxX) * 0.5 * this.viewport.scale;
         this.viewport.ty = this.canvas.clientHeight * 0.5 - (minY + maxY) * 0.5 * this.viewport.scale;
+        this.updateZoomUI();
         this.setStatus("Viewport centered on current circuit.");
       }
 
@@ -1386,7 +1713,7 @@
         document.body.setAttribute("data-theme", mono ? "mono" : "cyber");
         PALETTE.high = "#00d15f";
         PALETTE.low = "#f04d4d";
-        PALETTE.floating = mono ? "#9a9a9a" : "#8a7f52";
+        PALETTE.floating = "#f04d4d";
         PALETTE.selected = mono ? "#000000" : "#13d1a5";
         this.setStatus(`Theme changed to ${themeName === "mono" ? "black & white" : "cyber black"}.`);
       }
@@ -1398,6 +1725,278 @@
         } catch (err) {
           this.setStatus(`Simulation error: ${err.message}`, true);
         }
+      }
+
+      openAnalysisPanel() {
+        this.analysisOverlay.style.display = "flex";
+      }
+
+      closeAnalysisPanel() {
+        this.analysisOverlay.style.display = "none";
+      }
+
+      getInputNodes() {
+        return Array.from(this.graph.nodes.values())
+          .filter((n) => n.type === "INPUT")
+          .sort((a, b) => (a.label || a.id).localeCompare(b.label || b.id));
+      }
+
+      getOutputNodes() {
+        return Array.from(this.graph.nodes.values())
+          .filter((n) => n.type === "OUTPUT")
+          .sort((a, b) => (a.label || a.id).localeCompare(b.label || b.id));
+      }
+
+      buildTruthTable() {
+        const inputNodes = this.getInputNodes();
+        const outputNodes = this.getOutputNodes();
+        if (inputNodes.length === 0 || outputNodes.length === 0) {
+          this.setStatus("Need at least one input and one output for truth table.", true);
+          return;
+        }
+        if (inputNodes.length > 10) {
+          this.setStatus("Truth table is limited to 10 inputs.", true);
+          return;
+        }
+
+        const snapshot = this.graph.toJSON(this.viewport);
+        const rows = [];
+        const rowCount = 1 << inputNodes.length;
+        for (let mask = 0; mask < rowCount; mask += 1) {
+          const inBits = [];
+          for (let i = 0; i < inputNodes.length; i += 1) {
+            const bit = (mask >> (inputNodes.length - i - 1)) & 1;
+            inBits.push(bit);
+            inputNodes[i].outputState = bit === 1 ? SIGNAL.HIGH : SIGNAL.LOW;
+          }
+          this.graph.stabilizeAll();
+          const outBits = outputNodes.map((o) => (o.outputState === SIGNAL.HIGH ? 1 : 0));
+          rows.push({ mask, inBits, outBits });
+        }
+
+        this.applySnapshot(snapshot);
+
+        this.analysisState.rows = rows;
+        this.analysisState.inputNodes = inputNodes.map((n) => ({ id: n.id, label: n.label || n.id }));
+        this.analysisState.outputNodes = outputNodes.map((n) => ({ id: n.id, label: n.label || n.id }));
+        this.analysisState.selectedOutputID = this.analysisState.outputNodes[0]?.id || null;
+        this.analysisState.simplified = null;
+
+        this.renderTruthTable();
+        this.populateKmapOutputSelect();
+        this.simplifiedExprBox.textContent = "Truth table built. Select an output and draw K-map.";
+        this.setStatus("Truth table generated.");
+      }
+
+      renderTruthTable() {
+        const { rows, inputNodes, outputNodes } = this.analysisState;
+        if (!rows.length) {
+          this.truthTableWrap.innerHTML = "";
+          return;
+        }
+
+        const headInputs = inputNodes.map((i) => `<th>${escapeHtml(i.label)}</th>`).join("");
+        const headOutputs = outputNodes.map((o) => `<th>${escapeHtml(o.label)}</th>`).join("");
+        const body = rows.map((r) => {
+          const ins = r.inBits.map((v) => `<td class="${v ? "tt-one" : "tt-zero"}">${v}</td>`).join("");
+          const outs = r.outBits.map((v) => `<td class="${v ? "tt-one" : "tt-zero"}">${v}</td>`).join("");
+          return `<tr>${ins}${outs}</tr>`;
+        }).join("");
+
+        this.truthTableWrap.innerHTML = `<table class="logic-table"><thead><tr>${headInputs}${headOutputs}</tr></thead><tbody>${body}</tbody></table>`;
+      }
+
+      populateKmapOutputSelect() {
+        const select = document.getElementById("kmapOutputSelect");
+        select.innerHTML = "";
+        this.analysisState.outputNodes.forEach((o, idx) => {
+          const opt = document.createElement("option");
+          opt.value = o.id;
+          opt.textContent = o.label;
+          if (idx === 0) opt.selected = true;
+          select.appendChild(opt);
+        });
+      }
+
+      drawKmapForSelection() {
+        const { rows, inputNodes, outputNodes } = this.analysisState;
+        if (!rows.length) {
+          this.setStatus("Build truth table first.", true);
+          return;
+        }
+        if (inputNodes.length > 5) {
+          this.setStatus("K-map supports up to 5 input variables.", true);
+          return;
+        }
+
+        const selectedID = document.getElementById("kmapOutputSelect").value;
+        const outIndex = outputNodes.findIndex((o) => o.id === selectedID);
+        if (outIndex < 0) {
+          this.setStatus("Select an output for K-map.", true);
+          return;
+        }
+
+        const n = inputNodes.length;
+        const rowBits = Math.floor(n / 2);
+        const colBits = n - rowBits;
+        const rowCodes = grayCodeList(rowBits);
+        const colCodes = grayCodeList(colBits);
+
+        let html = `<table class="logic-table"><thead><tr><th>R\\C</th>${colCodes.map((c) => `<th>${c || "-"}</th>`).join("")}</tr></thead><tbody>`;
+        for (let r = 0; r < rowCodes.length; r += 1) {
+          html += `<tr><th>${rowCodes[r] || "-"}</th>`;
+          for (let c = 0; c < colCodes.length; c += 1) {
+            const idx = parseInt(`${rowCodes[r]}${colCodes[c]}` || "0", 2);
+            const v = rows[idx]?.outBits[outIndex] ?? 0;
+            html += `<td class="${v ? "tt-one" : "tt-zero"}">${v}</td>`;
+          }
+          html += "</tr>";
+        }
+        html += "</tbody></table>";
+        this.kmapWrap.innerHTML = html;
+
+        const minterms = rows.filter((r) => r.outBits[outIndex] === 1).map((r) => r.mask);
+        const inputNames = inputNodes.map((n) => n.label || n.id);
+        const implicants = quineMcCluskeyMinimize(n, minterms);
+        const expr = implicantsToSOP(implicants, inputNames);
+
+        this.analysisState.simplified = {
+          output: outputNodes[outIndex],
+          inputNames,
+          implicants,
+          expr,
+          varCount: n
+        };
+        this.simplifiedExprBox.textContent = `${outputNodes[outIndex].label} = ${expr}`;
+        this.setStatus("K-map drawn and simplified expression generated.");
+      }
+
+      drawSimplifiedCircuit() {
+        const info = this.analysisState.simplified;
+        if (!info) {
+          this.setStatus("Generate K-map first.", true);
+          return;
+        }
+
+        this.captureSnapshot();
+        this.graph.clear();
+
+        const inputNodes = info.inputNames.map((name, idx) => {
+          const n = new InputSource(makeId("i"), 80, 90 + idx * 90);
+          n.label = name;
+          this.graph.addNode(n);
+          return n;
+        });
+
+        const splitMap = new Map();
+        const allocSignal = (varIdx, yBase) => {
+          const prev = splitMap.get(varIdx) || inputNodes[varIdx];
+          const b = new BufferGate(makeId("g"), 250 + (splitMap.get(varIdx) ? 70 : 0), yBase);
+          b.label = `BUF_${info.inputNames[varIdx]}`;
+          this.graph.addNode(b);
+          this.graph.addConnection(prev.id, b.id, 0);
+          splitMap.set(varIdx, b);
+          return b;
+        };
+
+        const termOutputs = [];
+        for (let t = 0; t < info.implicants.length; t += 1) {
+          const imp = info.implicants[t];
+          const literals = [];
+          let y = 120 + t * 95;
+
+          for (let i = 0; i < imp.length; i += 1) {
+            if (imp[i] === "-") continue;
+            const src = allocSignal(i, y);
+            if (imp[i] === "1") {
+              literals.push(src);
+            } else {
+              const inv = new NotGate(makeId("g"), 400, y);
+              inv.label = `NOT_${info.inputNames[i]}`;
+              this.graph.addNode(inv);
+              this.graph.addConnection(src.id, inv.id, 0);
+              literals.push(inv);
+              y += 42;
+            }
+          }
+
+          if (!literals.length) {
+            const c1 = new InputSource(makeId("i"), 80, 100 + info.inputNames.length * 95);
+            c1.label = "CONST_1";
+            c1.outputState = SIGNAL.HIGH;
+            this.graph.addNode(c1);
+            termOutputs.push(c1);
+            continue;
+          }
+
+          let current = literals[0];
+          let pending = literals.slice(1);
+          while (pending.length > 0) {
+            const take = [current, ...pending.splice(0, 3)];
+            if (take.length === 1) {
+              current = take[0];
+              break;
+            }
+            const andNode = new AndGate(makeId("g"), 560 + t * 30, 130 + t * 90, Math.min(4, take.length));
+            andNode.label = `TERM_${t + 1}`;
+            this.graph.addNode(andNode);
+            for (let p = 0; p < take.length; p += 1) {
+              this.graph.addConnection(take[p].id, andNode.id, p);
+            }
+            current = andNode;
+          }
+          termOutputs.push(current);
+        }
+
+        let finalSource = termOutputs[0] || null;
+        let remain = termOutputs.slice(1);
+        while (remain.length > 0) {
+          const take = [finalSource, ...remain.splice(0, 3)];
+          const orNode = new OrGate(makeId("g"), 780, 220 + remain.length * 20, Math.min(4, take.length));
+          orNode.label = "SIMPLIFIED_OR";
+          this.graph.addNode(orNode);
+          for (let p = 0; p < take.length; p += 1) {
+            this.graph.addConnection(take[p].id, orNode.id, p);
+          }
+          finalSource = orNode;
+        }
+
+        const out = new OutputProbe(makeId("o"), 950, 220);
+        out.label = `${info.output.label}_SIMPLIFIED`;
+        this.graph.addNode(out);
+        if (finalSource) this.graph.addConnection(finalSource.id, out.id, 0);
+
+        this.fitToCircuit();
+        this.runSimulation();
+        this.saveCurrentCircuit();
+        this.closeAnalysisPanel();
+        this.setStatus("Simplified circuit generated and drawn.");
+      }
+
+      getCircuitSummaryPrompt() {
+        const inputs = this.getInputNodes();
+        const outputs = this.getOutputNodes();
+        const gates = Array.from(this.graph.nodes.values()).filter((n) => n.type !== "INPUT" && n.type !== "OUTPUT");
+        return [
+          "Review this digital circuit and suggest improvements:",
+          `Inputs (${inputs.length}): ${inputs.map((n) => n.label).join(", ")}`,
+          `Outputs (${outputs.length}): ${outputs.map((n) => n.label).join(", ")}`,
+          `Gates (${gates.length}): ${gates.map((n) => `${n.type}:${n.label}`).join(", ")}`,
+          "Please provide truth table checks, minimization, and hazard notes."
+        ].join("\n");
+      }
+
+      askAIProvider() {
+        const provider = document.getElementById("aiProviderSelect").value;
+        const prompt = (document.getElementById("aiPromptBox").value || this.getCircuitSummaryPrompt()).trim();
+        const q = encodeURIComponent(prompt);
+
+        let url = "https://chatgpt.com/?q=" + q;
+        if (provider === "gemini") url = "https://gemini.google.com/app";
+        if (provider === "perplexity") url = `https://www.perplexity.ai/search/new?q=${q}`;
+
+        window.open(url, "_blank", "noopener,noreferrer");
+        this.setStatus("Opened free AI assistant in a new tab.");
       }
 
       captureSnapshot() {
@@ -1416,6 +2015,8 @@
             scale: Math.max(this.zoomLimits.min, Math.min(this.zoomLimits.max, loaded.viewport.scale ?? 1))
           };
         }
+        this.clampViewportToCircuit();
+        this.updateZoomUI();
       }
 
       undo() {
@@ -1561,6 +2162,7 @@
             const dy = evt.clientY - this.interaction.panStart.y;
             this.viewport.tx += dx;
             this.viewport.ty += dy;
+            this.clampViewportToCircuit();
             this.interaction.panStart = { x: evt.clientX, y: evt.clientY };
             return;
           }
@@ -1640,12 +2242,9 @@
 
         this.canvas.addEventListener("wheel", (evt) => {
           evt.preventDefault();
-          const pre = this.clientToWorld(evt.clientX, evt.clientY);
           const delta = evt.deltaY < 0 ? 1.1 : 0.9;
           const nextScale = Math.max(this.zoomLimits.min, Math.min(this.zoomLimits.max, this.viewport.scale * delta));
-          this.viewport.scale = nextScale;
-          this.viewport.tx = evt.clientX - pre.x * this.viewport.scale;
-          this.viewport.ty = evt.clientY - pre.y * this.viewport.scale;
+          this.applyZoom(nextScale, this.getFocusWorldPoint());
         }, { passive: false });
       }
 
@@ -2106,6 +2705,155 @@
         if (d < best) best = d;
       }
       return best;
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function grayCodeList(bits) {
+      if (bits <= 0) return [""];
+      const out = [];
+      const size = 1 << bits;
+      for (let i = 0; i < size; i += 1) {
+        const g = i ^ (i >> 1);
+        out.push(g.toString(2).padStart(bits, "0"));
+      }
+      return out;
+    }
+
+    function quineMcCluskeyMinimize(numVars, minterms) {
+      if (!minterms.length) return [];
+      const uniqueMinterms = Array.from(new Set(minterms)).sort((a, b) => a - b);
+
+      let groups = new Map();
+      uniqueMinterms.forEach((m) => {
+        const bits = m.toString(2).padStart(numVars, "0");
+        const ones = bits.split("").filter((b) => b === "1").length;
+        if (!groups.has(ones)) groups.set(ones, []);
+        groups.get(ones).push({ bits, covered: new Set([m]), used: false });
+      });
+
+      const primes = [];
+      while (groups.size > 0) {
+        const next = new Map();
+        const keys = Array.from(groups.keys()).sort((a, b) => a - b);
+
+        for (let k = 0; k < keys.length - 1; k += 1) {
+          const aGroup = groups.get(keys[k]) || [];
+          const bGroup = groups.get(keys[k + 1]) || [];
+
+          for (const a of aGroup) {
+            for (const b of bGroup) {
+              const comb = combineBits(a.bits, b.bits);
+              if (!comb) continue;
+              a.used = true;
+              b.used = true;
+
+              const ones = comb.split("").filter((x) => x === "1").length;
+              if (!next.has(ones)) next.set(ones, []);
+
+              const mergedCovered = new Set([...a.covered, ...b.covered]);
+              const dup = next.get(ones).find((x) => x.bits === comb && setsEqual(x.covered, mergedCovered));
+              if (!dup) next.get(ones).push({ bits: comb, covered: mergedCovered, used: false });
+            }
+          }
+        }
+
+        for (const arr of groups.values()) {
+          for (const item of arr) {
+            if (!item.used) primes.push(item);
+          }
+        }
+
+        groups = next;
+      }
+
+      const chart = new Map();
+      uniqueMinterms.forEach((m) => chart.set(m, []));
+      primes.forEach((p, idx) => {
+        p.covered.forEach((m) => {
+          if (chart.has(m)) chart.get(m).push(idx);
+        });
+      });
+
+      const selected = new Set();
+      const uncovered = new Set(uniqueMinterms);
+
+      for (const m of uniqueMinterms) {
+        const covers = chart.get(m) || [];
+        if (covers.length === 1) {
+          selected.add(covers[0]);
+        }
+      }
+
+      selected.forEach((idx) => {
+        primes[idx].covered.forEach((m) => uncovered.delete(m));
+      });
+
+      while (uncovered.size > 0) {
+        let bestIdx = -1;
+        let bestCount = -1;
+        primes.forEach((p, idx) => {
+          if (selected.has(idx)) return;
+          let count = 0;
+          p.covered.forEach((m) => {
+            if (uncovered.has(m)) count += 1;
+          });
+          if (count > bestCount) {
+            bestCount = count;
+            bestIdx = idx;
+          }
+        });
+        if (bestIdx < 0) break;
+        selected.add(bestIdx);
+        primes[bestIdx].covered.forEach((m) => uncovered.delete(m));
+      }
+
+      return Array.from(selected).map((idx) => primes[idx].bits);
+    }
+
+    function combineBits(a, b) {
+      let diff = 0;
+      let out = "";
+      for (let i = 0; i < a.length; i += 1) {
+        if (a[i] === b[i]) {
+          out += a[i];
+        } else {
+          if (a[i] === "-" || b[i] === "-") return null;
+          diff += 1;
+          out += "-";
+          if (diff > 1) return null;
+        }
+      }
+      return diff === 1 ? out : null;
+    }
+
+    function setsEqual(a, b) {
+      if (a.size !== b.size) return false;
+      for (const x of a) {
+        if (!b.has(x)) return false;
+      }
+      return true;
+    }
+
+    function implicantsToSOP(implicants, varNames) {
+      if (!implicants.length) return "0";
+      const terms = implicants.map((imp) => {
+        const parts = [];
+        for (let i = 0; i < imp.length; i += 1) {
+          if (imp[i] === "-") continue;
+          if (imp[i] === "1") parts.push(varNames[i]);
+          if (imp[i] === "0") parts.push(`${varNames[i]}'`);
+        }
+        return parts.length ? parts.join(" ") : "1";
+      });
+      return terms.join(" + ");
     }
 
     new AppController();
