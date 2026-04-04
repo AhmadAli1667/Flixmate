@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Circify - Logic CAD</title>
+  <style>
+    :root {
+      --bg: #0b0e14;
+      --grid: #1c222d;
+      --panel: rgba(22, 28, 38, 0.58);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --high: #00f2ff;
+      --low: #4a4a4a;
+      --float: #8a7f52;
+      --text: #d6d9e0;
+      --accent: #13d1a5;
+      --danger: #ff5d6c;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 30% 20%, #121826 0%, var(--bg) 46%, #080a10 100%);
+      color: var(--text);
+      font-family: "Segoe UI", "Trebuchet MS", sans-serif;
+      user-select: none;
+    }
+
+    #app {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      isolation: isolate;
+    }
+
+    #simCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    .sidebar {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      width: 290px;
+      max-height: calc(100% - 28px);
+      overflow: auto;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 14px;
+      backdrop-filter: blur(14px) saturate(115%);
+      -webkit-backdrop-filter: blur(14px) saturate(115%);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.35);
+      padding: 14px;
+      z-index: 5;
+    }
+
+    .title {
+      margin: 0 0 10px;
+      font-size: 15px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: #ebf7ff;
+    }
+
+    .subtitle {
+      margin: 10px 0 6px;
+      font-size: 11px;
+      color: #9fb5c8;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    button {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+      color: var(--text);
+      border-radius: 8px;
+      padding: 7px 8px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: transform 130ms ease, border-color 130ms ease, background 130ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(19, 209, 165, 0.72);
+      background: linear-gradient(160deg, rgba(19, 209, 165, 0.23), rgba(19, 209, 165, 0.05));
+    }
+
+    button:active {
+      transform: translateY(0px);
+    }
+
+    .io-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    textarea {
+      margin-top: 8px;
+      width: 100%;
+      min-height: 130px;
+      resize: vertical;
+      background: rgba(9, 11, 17, 0.83);
+      color: #dbe7f5;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 9px;
+      padding: 9px;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    .status {
+      margin-top: 8px;
+      font-size: 11px;
+      color: #9bc3db;
+      min-height: 16px;
+    }
+
+    .kbd {
+      display: inline-block;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 4px;
+      padding: 1px 5px;
+      background: rgba(0, 0, 0, 0.22);
+      font-family: Consolas, monospace;
+      font-size: 10px;
+      color: #e4f4ff;
+    }
+
+    .context-menu {
+      position: absolute;
+      min-width: 170px;
+      background: rgba(17, 23, 33, 0.96);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 10px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(8px);
+      display: none;
+      z-index: 20;
+      padding: 6px;
+    }
+
+    .context-item {
+      width: 100%;
+      text-align: left;
+      font-size: 12px;
+      border: none;
+      border-radius: 7px;
+      padding: 8px;
+      margin: 2px 0;
+      background: transparent;
+      color: #cfe0ee;
+    }
+
+    .context-item:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: transparent;
+      transform: none;
+    }
+
+    .context-item.danger:hover {
+      background: rgba(255, 93, 108, 0.2);
+      color: #ffd6db;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar {
+        width: calc(100% - 24px);
+        max-height: 44%;
+        top: 10px;
+        left: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <canvas id="simCanvas"></canvas>
+
+    <aside class="sidebar">
+      <h1 class="title">Circify CAD Workspace</h1>
+
+      <div class="subtitle">Add Gates</div>
+      <div class="btn-grid" id="gateButtons"></div>
+
+      <div class="subtitle">I/O</div>
+      <div class="io-grid">
+        <button id="addInputBtn">Add Input</button>
+        <button id="addOutputBtn">Add Output</button>
+      </div>
+
+      <div class="subtitle">Data</div>
+      <div class="io-grid">
+        <button id="saveBtn">Save JSON</button>
+        <button id="loadBtn">Load JSON</button>
+      </div>
+      <div class="io-grid">
+        <button id="verilogBtn">Export Verilog</button>
+        <button id="clearBtn">Clear Circuit</button>
+      </div>
+      <textarea id="dataBox" spellcheck="false" placeholder="JSON / Verilog output"></textarea>
+      <div class="status" id="statusLine">Ready.</div>
+
+      <div class="subtitle">Controls</div>
+      <div style="font-size:11px;line-height:1.5;color:#a6b7c8;">
+        LMB drag gate: move with grid snap<br />
+        LMB output pin -> input pin: connect<br />
+        LMB input body: cycle 0/1/floating<br />
+        MMB or Shift+LMB drag: pan viewport<br />
+        Wheel: zoom at cursor<br />
+        RMB on component: open context menu
+      </div>
+    </aside>
+
+    <div class="context-menu" id="contextMenu">
+      <button class="context-item" data-action="toggle-inputs">Toggle 2/3 Inputs</button>
+      <button class="context-item danger" data-action="delete">Delete Component</button>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    const SIGNAL = Object.freeze({
+      LOW: 0,
+      HIGH: 1,
+      FLOAT: null
+    });
+
+    const GRID_SIZE = 20;
+    const PIN_SNAP_RADIUS = 15;
+
+    const TYPE_LIST = ["AND", "OR", "NOT", "XOR", "XNOR"];
+
+    const PALETTE = {
+      high: "#00f2ff",
+      low: "#4a4a4a",
+      floating: "#8a7f52",
+      selected: "#13d1a5"
+    };
+
+    const ICON_PATHS = {
+      AND: "M -14 -12 L -2 -12 C 12 -12 14 -3 14 0 C 14 3 12 12 -2 12 L -14 12 Z",
+      OR: "M -16 -12 C -5 -12 3 -10 16 0 C 3 10 -5 12 -16 12 C -10 8 -8 -8 -16 -12 Z",
+      NOT: "M -14 -12 L 10 0 L -14 12 Z M 13 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0",
+      XOR: "M -18 -12 C -10 -8 -8 8 -18 12 M -14 -12 C -3 -12 5 -10 18 0 C 5 10 -3 12 -14 12 C -8 8 -6 -8 -14 -12 Z",
+      XNOR: "M -18 -12 C -10 -8 -8 8 -18 12 M -14 -12 C -3 -12 5 -10 18 0 C 5 10 -3 12 -14 12 C -8 8 -6 -8 -14 -12 Z M 21 0 m -3 0 a 3 3 0 1 0 6 0 a 3 3 0 1 0 -6 0"
+    };
+
+    let globalIdCounter = 1;
+    // Generates stable incremental IDs for nodes and edges.
+    function makeId(prefix = "n") {
+      const id = `${prefix}${globalIdCounter}`;
+      globalIdCounter += 1;
+      return id;
+    }
+
+    // Maps ternary signal values to the circuit color system.
+    function signalColor(signal) {
+      if (signal === SIGNAL.HIGH) return PALETTE.high;
+      if (signal === SIGNAL.LOW) return PALETTE.low;
+      return PALETTE.floating;
+    }
+
+    // Keeps geometry aligned to blueprint grid increments.
+    function snapToGrid(value) {
+      return Math.round(value / GRID_SIZE) * GRID_SIZE;
+    }
+
+    // Shared Euclidean distance helper used by hit-tests and snapping.
+    function worldDistance(a, b) {
+      const dx = a.x - b.x;
+      const dy = a.y - b.y;
+      return Math.hypot(dx, dy);
+    }
+
+    class LogicComponent {
+      constructor(id, type, x, y, width = 82, height = 52) {
+        this.id = id;
+        this.type = type;
+        this.x = x;
+        this.y = y;
+        this.width = width;
+        this.height = height;
+        this.inputCount = 2;
+        this.inputStates = [SIGNAL.FLOAT, SIGNAL.FLOAT];
+        this.outputState = SIGNAL.FLOAT;
+        this.inputPins = [];
+        this.outputPin = { x: this.x + this.width, y: this.y + this.height / 2 };
+        this.updatePinLayout();
+      }
+
+      getAABB() {
+        return {
+          x: this.x,
+          y: this.y,
+          width: this.width,
+          height: this.height
+        };
+      }
+
+      // Basic AABB point-in-rectangle test for fast selection checks.
+      hitTestAABB(wx, wy) {
+        const aabb = this.getAABB();
+        return wx >= aabb.x && wx <= aabb.x + aabb.width && wy >= aabb.y && wy <= aabb.y + aabb.height;
+      }
+
+      updatePinLayout() {
+      // Rebuilds pin coordinates whenever node size or position changes.
+        this.inputPins = [];
+        if (this.inputCount > 0) {
+          const step = this.height / (this.inputCount + 1);
+          for (let i = 0; i < this.inputCount; i += 1) {
+            this.inputPins.push({ x: this.x, y: this.y + step * (i + 1), index: i });
+          }
+        }
+        this.outputPin = { x: this.x + this.width, y: this.y + this.height / 2 };
+      }
+
+      // Moves a node and immediately refreshes pin anchor points.
+      setPosition(x, y) {
+        this.x = x;
+        this.y = y;
+        this.updatePinLayout();
+      }
+
+      setInput(pinIndex, signal) {
+        if (pinIndex < 0 || pinIndex >= this.inputStates.length) return;
+        this.inputStates[pinIndex] = signal;
+      }
+
+      clearInputs() {
+        this.inputStates = Array.from({ length: this.inputCount }, () => SIGNAL.FLOAT);
+      }
+
+      evaluate() {
+        return this.outputState;
+      }
+
+      toggleInputCount() {
+        return false;
+      }
+
+      toJSON() {
+        return {
+          id: this.id,
+          type: this.type,
+          x: this.x,
+          y: this.y,
+          width: this.width,
+          height: this.height,
+          inputCount: this.inputCount,
+          inputStates: this.inputStates,
+          outputState: this.outputState
+        };
+      }
+    }
+
+    class LogicGate extends LogicComponent {
+      constructor(id, type, x, y, inputCount = 2) {
+        super(id, type, x, y, 84, 56);
+        this.inputCount = inputCount;
+        this.inputStates = Array.from({ length: this.inputCount }, () => SIGNAL.FLOAT);
+        this.updatePinLayout();
+      }
+
+      toggleInputCount() {
+        if (this.type === "NOT") return false;
+        this.inputCount = this.inputCount === 2 ? 3 : 2;
+        this.inputStates = Array.from({ length: this.inputCount }, (_, i) => this.inputStates[i] ?? SIGNAL.FLOAT);
+        this.updatePinLayout();
+        return true;
+      }
+    }
+
+    class AndGate extends LogicGate {
+      constructor(id, x, y, inputCount = 2) {
+        super(id, "AND", x, y, inputCount);
+      }
+
+      evaluate() {
+        const states = this.inputStates;
+        if (states.some((s) => s === SIGNAL.LOW)) return SIGNAL.LOW;
+        if (states.every((s) => s === SIGNAL.HIGH)) return SIGNAL.HIGH;
+        return SIGNAL.FLOAT;
+      }
+    }
+
+    class OrGate extends LogicGate {
+      constructor(id, x, y, inputCount = 2) {
+        super(id, "OR", x, y, inputCount);
+      }
+
+      evaluate() {
+        const states = this.inputStates;
+        if (states.some((s) => s === SIGNAL.HIGH)) return SIGNAL.HIGH;
+        if (states.every((s) => s === SIGNAL.LOW)) return SIGNAL.LOW;
+        return SIGNAL.FLOAT;
+      }
+    }
+
+    class NotGate extends LogicGate {
+      constructor(id, x, y) {
+        super(id, "NOT", x, y, 1);
+      }
+
+      toggleInputCount() {
+        return false;
+      }
+
+      evaluate() {
+        const s = this.inputStates[0];
+        if (s === SIGNAL.FLOAT) return SIGNAL.FLOAT;
+        return s === SIGNAL.HIGH ? SIGNAL.LOW : SIGNAL.HIGH;
+      }
+    }
+
+    class XorGate extends LogicGate {
+      constructor(id, x, y, inputCount = 2) {
+        super(id, "XOR", x, y, inputCount);
+      }
+
+      evaluate() {
+        const states = this.inputStates;
+        if (states.some((s) => s === SIGNAL.FLOAT)) return SIGNAL.FLOAT;
+        const ones = states.reduce((acc, s) => acc + (s === SIGNAL.HIGH ? 1 : 0), 0);
+        return ones % 2 === 1 ? SIGNAL.HIGH : SIGNAL.LOW;
+      }
+    }
+
+    class XnorGate extends LogicGate {
+      constructor(id, x, y, inputCount = 2) {
+        super(id, "XNOR", x, y, inputCount);
+      }
+
+      evaluate() {
+        const states = this.inputStates;
+        if (states.some((s) => s === SIGNAL.FLOAT)) return SIGNAL.FLOAT;
+        const ones = states.reduce((acc, s) => acc + (s === SIGNAL.HIGH ? 1 : 0), 0);
+        return ones % 2 === 0 ? SIGNAL.HIGH : SIGNAL.LOW;
+      }
+    }
+
+    class InputSource extends LogicComponent {
+      constructor(id, x, y) {
+        super(id, "INPUT", x, y, 78, 44);
+        this.inputCount = 0;
+        this.inputStates = [];
+        this.outputState = SIGNAL.LOW;
+        this.inputPins = [];
+        this.updatePinLayout();
+      }
+
+      cycleState() {
+        if (this.outputState === SIGNAL.LOW) {
+          this.outputState = SIGNAL.HIGH;
+        } else if (this.outputState === SIGNAL.HIGH) {
+          this.outputState = SIGNAL.FLOAT;
+        } else {
+          this.outputState = SIGNAL.LOW;
+        }
+      }
+
+      evaluate() {
+        return this.outputState;
+      }
+    }
+
+    class OutputProbe extends LogicComponent {
+      constructor(id, x, y) {
+        super(id, "OUTPUT", x, y, 78, 44);
+        this.inputCount = 1;
+        this.inputStates = [SIGNAL.FLOAT];
+        this.outputState = SIGNAL.FLOAT;
+        this.outputPin = null;
+        this.updatePinLayout();
+      }
+
+      updatePinLayout() {
+        this.inputPins = [{ x: this.x, y: this.y + this.height / 2, index: 0 }];
+        this.outputPin = null;
+      }
+
+      evaluate() {
+        this.outputState = this.inputStates[0] ?? SIGNAL.FLOAT;
+        return this.outputState;
+      }
+
+      toJSON() {
+        const base = super.toJSON();
+        return {
+          ...base,
+          outputPin: null
+        };
+      }
+    }
+
+    class Connection {
+      constructor(id, sourceID, targetID, targetPinIndex) {
+        this.id = id;
+        this.sourceID = sourceID;
+        this.targetID = targetID;
+        this.targetPinIndex = targetPinIndex;
+        this.signal = SIGNAL.FLOAT;
+        this.pulseOffset = Math.random();
+      }
+
+      toJSON() {
+        return {
+          id: this.id,
+          sourceID: this.sourceID,
+          targetID: this.targetID,
+          targetPinIndex: this.targetPinIndex
+        };
+      }
+    }
+
+    class CircuitGraph {
+      constructor() {
+        this.nodes = new Map();
+        this.edges = new Map();
+        this.adjacency = new Map();
+        this.incoming = new Map();
+        this.maxPropagationDepth = 2048;
+      }
+
+      clear() {
+        this.nodes.clear();
+        this.edges.clear();
+        this.adjacency.clear();
+        this.incoming.clear();
+      }
+
+      addNode(node) {
+        this.nodes.set(node.id, node);
+        if (!this.adjacency.has(node.id)) this.adjacency.set(node.id, new Set());
+        if (!this.incoming.has(node.id)) this.incoming.set(node.id, new Set());
+        return node;
+      }
+
+      removeNode(nodeID) {
+        const incoming = this.incoming.get(nodeID) || new Set();
+        const outgoing = this.adjacency.get(nodeID) || new Set();
+        [...incoming, ...outgoing].forEach((edgeID) => this.removeConnection(edgeID));
+        this.nodes.delete(nodeID);
+        this.adjacency.delete(nodeID);
+        this.incoming.delete(nodeID);
+      }
+
+      removeConnection(edgeID) {
+        const edge = this.edges.get(edgeID);
+        if (!edge) return;
+        this.edges.delete(edgeID);
+        this.adjacency.get(edge.sourceID)?.delete(edgeID);
+        this.incoming.get(edge.targetID)?.delete(edgeID);
+      }
+
+      getNode(nodeID) {
+        return this.nodes.get(nodeID);
+      }
+
+      findConnectionToPin(targetID, pinIndex) {
+        const inSet = this.incoming.get(targetID) || new Set();
+        for (const edgeID of inSet) {
+          const edge = this.edges.get(edgeID);
+          if (edge && edge.targetPinIndex === pinIndex) return edge;
+        }
+        return null;
+      }
+
+      // Fast DFS reachability query used to pre-check cycle creation.
+      hasPath(startID, targetID, visited = new Set()) {
+        if (startID === targetID) return true;
+        if (visited.has(startID)) return false;
+        visited.add(startID);
+        for (const edgeID of this.adjacency.get(startID) || []) {
+          const edge = this.edges.get(edgeID);
+          if (!edge) continue;
+          if (this.hasPath(edge.targetID, targetID, visited)) return true;
+        }
+        return false;
+      }
+
+      // Full graph DFS cycle detector for structural validation.
+      detectCycle() {
+        const visitState = new Map();
+
+        const dfs = (nodeID) => {
+          visitState.set(nodeID, 1);
+          for (const edgeID of this.adjacency.get(nodeID) || []) {
+            const edge = this.edges.get(edgeID);
+            if (!edge) continue;
+            const next = edge.targetID;
+            const state = visitState.get(next) || 0;
+            if (state === 1) return true;
+            if (state === 0 && dfs(next)) return true;
+          }
+          visitState.set(nodeID, 2);
+          return false;
+        };
+
+        for (const nodeID of this.nodes.keys()) {
+          if ((visitState.get(nodeID) || 0) === 0 && dfs(nodeID)) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      addConnection(sourceID, targetID, targetPinIndex) {
+        if (sourceID === targetID) {
+          return { ok: false, reason: "Self-loop is not allowed." };
+        }
+
+        const source = this.nodes.get(sourceID);
+        const target = this.nodes.get(targetID);
+        if (!source || !target) {
+          return { ok: false, reason: "Invalid source or target." };
+        }
+        if (target.type === "INPUT") {
+          return { ok: false, reason: "Cannot drive an InputSource." };
+        }
+        if (!target.inputPins[targetPinIndex]) {
+          return { ok: false, reason: "Invalid target pin." };
+        }
+
+        const prior = this.findConnectionToPin(targetID, targetPinIndex);
+        if (prior) {
+          this.removeConnection(prior.id);
+        }
+
+        if (this.hasPath(targetID, sourceID)) {
+          return { ok: false, reason: "Combinational loop blocked (cycle detected)." };
+        }
+
+        const edge = new Connection(makeId("e"), sourceID, targetID, targetPinIndex);
+        this.edges.set(edge.id, edge);
+        this.adjacency.get(sourceID)?.add(edge.id);
+        this.incoming.get(targetID)?.add(edge.id);
+
+        if (this.detectCycle()) {
+          this.removeConnection(edge.id);
+          return { ok: false, reason: "Connection rejected: cycle detected." };
+        }
+
+        this.refreshTargetInputs(targetID);
+        this.propagateFrom(sourceID);
+
+        return { ok: true, edge };
+      }
+
+      // Rehydrates a target's pin states from all incoming edges.
+      refreshTargetInputs(targetID) {
+        const target = this.nodes.get(targetID);
+        if (!target || target.inputCount === 0) return;
+        target.clearInputs();
+        for (const edgeID of this.incoming.get(targetID) || []) {
+          const edge = this.edges.get(edgeID);
+          if (!edge) continue;
+          const source = this.nodes.get(edge.sourceID);
+          edge.signal = source?.outputState ?? SIGNAL.FLOAT;
+          target.setInput(edge.targetPinIndex, edge.signal);
+        }
+      }
+
+      // Removes wires pointing to pins that no longer exist after input-count changes.
+      cleanupInvalidPinConnections(nodeID) {
+        const node = this.nodes.get(nodeID);
+        if (!node) return;
+        for (const edgeID of this.incoming.get(nodeID) || []) {
+          const edge = this.edges.get(edgeID);
+          if (!edge) continue;
+          if (edge.targetPinIndex >= node.inputCount) {
+            this.removeConnection(edgeID);
+          }
+        }
+        this.refreshTargetInputs(nodeID);
+      }
+
+      // Entry point for event-driven propagation starting at a changed source.
+      propagateFrom(sourceID) {
+        if (this.detectCycle()) {
+          throw new Error("Propagation halted because graph contains a cycle.");
+        }
+
+        const origin = this.nodes.get(sourceID);
+        if (!origin) return;
+
+        if (origin.type === "INPUT") {
+          origin.evaluate();
+        }
+
+        this._propagateRecursive(sourceID, 0, new Set());
+      }
+
+      /**
+       * Recursive signal propagation through the DAG.
+       *
+       * The recursion does three key jobs:
+       * 1) Evaluate the current node's output from its current input states.
+       * 2) Push that output into each outgoing connection and corresponding target pin.
+       * 3) Recurse into downstream nodes only when their output potentially changes.
+       *
+       * Safety guarantees:
+       * - depth guard prevents infinite recursion.
+       * - DFS stack guard catches unexpected back-edges.
+       */
+      _propagateRecursive(nodeID, depth, activeStack) {
+        if (depth > this.maxPropagationDepth) {
+          throw new Error("Propagation depth exceeded safety limit.");
+        }
+        if (activeStack.has(nodeID)) {
+          throw new Error("Oscillation prevented: recursive cycle encountered.");
+        }
+
+        const node = this.nodes.get(nodeID);
+        if (!node) return;
+
+        activeStack.add(nodeID);
+
+        const previousOutput = node.outputState;
+        const nextOutput = node.evaluate();
+        node.outputState = nextOutput;
+
+        const outgoing = this.adjacency.get(nodeID) || new Set();
+        for (const edgeID of outgoing) {
+          const edge = this.edges.get(edgeID);
+          if (!edge) continue;
+
+          edge.signal = node.outputState;
+
+          const target = this.nodes.get(edge.targetID);
+          if (!target) continue;
+
+          target.setInput(edge.targetPinIndex, edge.signal);
+          const targetPrev = target.outputState;
+          const targetNext = target.evaluate();
+          target.outputState = targetNext;
+
+          if (targetPrev !== targetNext) {
+            this._propagateRecursive(target.id, depth + 1, new Set(activeStack));
+          }
+        }
+
+        if (previousOutput !== nextOutput) {
+          // Placeholder branch for future event queue timings.
+        }
+
+        activeStack.delete(nodeID);
+      }
+
+      // Deterministic full-pass recompute in topological order.
+      stabilizeAll() {
+        const order = this.topologicalSort();
+        if (!order) {
+          throw new Error("Cannot stabilize: graph contains a cycle.");
+        }
+
+        for (const nodeID of order) {
+          const node = this.nodes.get(nodeID);
+          if (!node) continue;
+          if (node.type !== "INPUT") {
+            this.refreshTargetInputs(nodeID);
+            node.outputState = node.evaluate();
+          }
+
+          for (const edgeID of this.adjacency.get(nodeID) || []) {
+            const edge = this.edges.get(edgeID);
+            const source = this.nodes.get(edge.sourceID);
+            edge.signal = source?.outputState ?? SIGNAL.FLOAT;
+          }
+        }
+      }
+
+      // Kahn's algorithm to produce DAG evaluation order.
+      topologicalSort() {
+        const indegree = new Map();
+        for (const nodeID of this.nodes.keys()) {
+          indegree.set(nodeID, 0);
+        }
+        for (const edge of this.edges.values()) {
+          indegree.set(edge.targetID, (indegree.get(edge.targetID) || 0) + 1);
+        }
+
+        const queue = [];
+        for (const [nodeID, deg] of indegree.entries()) {
+          if (deg === 0) queue.push(nodeID);
+        }
+
+        const order = [];
+        while (queue.length > 0) {
+          const nodeID = queue.shift();
+          order.push(nodeID);
+          for (const edgeID of this.adjacency.get(nodeID) || []) {
+            const edge = this.edges.get(edgeID);
+            if (!edge) continue;
+            const next = edge.targetID;
+            indegree.set(next, (indegree.get(next) || 0) - 1);
+            if (indegree.get(next) === 0) queue.push(next);
+          }
+        }
+
+        if (order.length !== this.nodes.size) return null;
+        return order;
+      }
+
+      // Builds plain serializable data from graph state + viewport.
+      toObject(viewport = null) {
+        return {
+          nodes: Array.from(this.nodes.values()).map((n) => n.toJSON()),
+          edges: Array.from(this.edges.values()).map((e) => e.toJSON()),
+          viewport
+        };
+      }
+
+      toJSON(viewport = null) {
+        return JSON.stringify(this.toObject(viewport), null, 2);
+      }
+
+      fromObject(data) {
+        this.clear();
+
+        const buildNode = (record) => {
+          let node = null;
+          const id = record.id;
+          switch (record.type) {
+            case "AND":
+              node = new AndGate(id, record.x, record.y, record.inputCount || 2);
+              break;
+            case "OR":
+              node = new OrGate(id, record.x, record.y, record.inputCount || 2);
+              break;
+            case "NOT":
+              node = new NotGate(id, record.x, record.y);
+              break;
+            case "XOR":
+              node = new XorGate(id, record.x, record.y, record.inputCount || 2);
+              break;
+            case "XNOR":
+              node = new XnorGate(id, record.x, record.y, record.inputCount || 2);
+              break;
+            case "INPUT":
+              node = new InputSource(id, record.x, record.y);
+              break;
+            case "OUTPUT":
+              node = new OutputProbe(id, record.x, record.y);
+              break;
+            default:
+              throw new Error(`Unsupported node type: ${record.type}`);
+          }
+
+          node.width = record.width ?? node.width;
+          node.height = record.height ?? node.height;
+          node.inputCount = record.inputCount ?? node.inputCount;
+          node.inputStates = Array.from({ length: node.inputCount }, (_, i) => record.inputStates?.[i] ?? SIGNAL.FLOAT);
+          node.outputState = record.outputState ?? SIGNAL.FLOAT;
+          node.updatePinLayout();
+          return node;
+        };
+
+        for (const nodeData of data.nodes || []) {
+          const node = buildNode(nodeData);
+          this.addNode(node);
+          const num = Number(String(node.id).replace(/[^0-9]/g, ""));
+          if (!Number.isNaN(num)) {
+            globalIdCounter = Math.max(globalIdCounter, num + 1);
+          }
+        }
+
+        for (const edgeData of data.edges || []) {
+          const edge = new Connection(edgeData.id, edgeData.sourceID, edgeData.targetID, edgeData.targetPinIndex);
+          this.edges.set(edge.id, edge);
+          this.adjacency.get(edge.sourceID)?.add(edge.id);
+          this.incoming.get(edge.targetID)?.add(edge.id);
+          const num = Number(String(edge.id).replace(/[^0-9]/g, ""));
+          if (!Number.isNaN(num)) {
+            globalIdCounter = Math.max(globalIdCounter, num + 1);
+          }
+        }
+
+        this.stabilizeAll();
+      }
+
+      // Parses JSON and reconstructs nodes, edges, and stable signal states.
+      fromJSON(raw) {
+        const obj = JSON.parse(raw);
+        this.fromObject(obj);
+        return obj;
+      }
+
+      // Generates combinational Verilog using sorted dependency order.
+      toVerilog() {
+        const order = this.topologicalSort();
+        if (!order) {
+          throw new Error("Verilog export failed: graph must remain acyclic.");
+        }
+
+        const inputs = [];
+        const outputs = [];
+        const exprByNode = new Map();
+        const wireDecls = [];
+        const assigns = [];
+
+        const sortedInputNodes = order
+          .map((id) => this.nodes.get(id))
+          .filter((n) => n && n.type === "INPUT");
+        sortedInputNodes.forEach((node, idx) => {
+          const name = `in${idx}`;
+          inputs.push(name);
+          exprByNode.set(node.id, name);
+        });
+
+        for (const nodeID of order) {
+          const node = this.nodes.get(nodeID);
+          if (!node) continue;
+
+          if (node.type === "INPUT") continue;
+
+          const inEdges = Array.from(this.incoming.get(nodeID) || [])
+            .map((edgeID) => this.edges.get(edgeID))
+            .filter(Boolean)
+            .sort((a, b) => a.targetPinIndex - b.targetPinIndex);
+
+          const inExpr = Array.from({ length: node.inputCount }, (_, pinIndex) => {
+            const edge = inEdges.find((e) => e.targetPinIndex === pinIndex);
+            if (!edge) return "1'bx";
+            return exprByNode.get(edge.sourceID) || "1'bx";
+          });
+
+          if (node.type === "OUTPUT") {
+            const outName = `out${outputs.length}`;
+            outputs.push(outName);
+            assigns.push(`assign ${outName} = ${inExpr[0] || "1'bx"};`);
+            exprByNode.set(node.id, outName);
+            continue;
+          }
+
+          const wireName = `w_${node.id.replace(/[^a-zA-Z0-9_]/g, "_")}`;
+          wireDecls.push(wireName);
+
+          let expr = "1'bx";
+          if (node.type === "AND") expr = inExpr.join(" & ");
+          if (node.type === "OR") expr = inExpr.join(" | ");
+          if (node.type === "NOT") expr = `~(${inExpr[0] || "1'bx"})`;
+          if (node.type === "XOR") expr = inExpr.join(" ^ ");
+          if (node.type === "XNOR") expr = `~(${inExpr.join(" ^ ")})`;
+
+          assigns.push(`assign ${wireName} = ${expr};`);
+          exprByNode.set(node.id, wireName);
+        }
+
+        const ports = [...inputs, ...outputs].join(", ");
+        const lines = [];
+        lines.push(`module circuit(${ports});`);
+
+        if (inputs.length > 0) {
+          lines.push(`  input wire ${inputs.join(", ")};`);
+        }
+        if (outputs.length > 0) {
+          lines.push(`  output wire ${outputs.join(", ")};`);
+        }
+        if (wireDecls.length > 0) {
+          lines.push(`  wire ${wireDecls.join(", ")};`);
+        }
+
+        for (const a of assigns) {
+          lines.push(`  ${a}`);
+        }
+
+        lines.push("endmodule");
+        return lines.join("\n");
+      }
+    }
+
+    class AppController {
+      constructor() {
+        this.canvas = document.getElementById("simCanvas");
+        this.ctx = this.canvas.getContext("2d");
+        this.backCanvas = document.createElement("canvas");
+        this.backCtx = this.backCanvas.getContext("2d");
+
+        this.statusLine = document.getElementById("statusLine");
+        this.dataBox = document.getElementById("dataBox");
+        this.contextMenu = document.getElementById("contextMenu");
+
+        this.graph = new CircuitGraph();
+
+        this.viewport = {
+          tx: 0,
+          ty: 0,
+          scale: 1
+        };
+
+        this.interaction = {
+          draggingNodeID: null,
+          dragOffset: { x: 0, y: 0 },
+          panning: false,
+          panStart: { x: 0, y: 0 },
+          mouseWorld: { x: 0, y: 0 },
+          connecting: null,
+          snappedTarget: null,
+          clickStart: null
+        };
+
+        this.selectedNodeID = null;
+        this.contextNodeID = null;
+
+        this.bindUI();
+        this.bindCanvasEvents();
+        this.resize();
+        this.seedDemo();
+        requestAnimationFrame((t) => this.render(t));
+      }
+
+      // Updates status line and color for success/error feedback.
+      setStatus(text, isError = false) {
+        this.statusLine.textContent = text;
+        this.statusLine.style.color = isError ? "#ff8d98" : "#9bc3db";
+      }
+
+      bindUI() {
+        const gateButtons = document.getElementById("gateButtons");
+        TYPE_LIST.forEach((type) => {
+          const btn = document.createElement("button");
+          btn.textContent = type;
+          btn.addEventListener("click", () => this.addGate(type));
+          gateButtons.appendChild(btn);
+        });
+
+        document.getElementById("addInputBtn").addEventListener("click", () => this.addInput());
+        document.getElementById("addOutputBtn").addEventListener("click", () => this.addOutput());
+
+        document.getElementById("saveBtn").addEventListener("click", () => {
+          this.dataBox.value = this.graph.toJSON(this.viewport);
+          this.setStatus("Circuit serialized to JSON.");
+        });
+
+        document.getElementById("loadBtn").addEventListener("click", () => {
+          try {
+            const loaded = this.graph.fromJSON(this.dataBox.value.trim());
+            if (loaded.viewport) {
+              this.viewport = {
+                tx: loaded.viewport.tx ?? 0,
+                ty: loaded.viewport.ty ?? 0,
+                scale: loaded.viewport.scale ?? 1
+              };
+            }
+            this.setStatus("Circuit restored from JSON.");
+          } catch (err) {
+            this.setStatus(`Load failed: ${err.message}`, true);
+          }
+        });
+
+        document.getElementById("verilogBtn").addEventListener("click", () => {
+          try {
+            this.dataBox.value = this.graph.toVerilog();
+            this.setStatus("Verilog generated via topological sort.");
+          } catch (err) {
+            this.setStatus(err.message, true);
+          }
+        });
+
+        document.getElementById("clearBtn").addEventListener("click", () => {
+          this.graph.clear();
+          this.selectedNodeID = null;
+          this.setStatus("Circuit cleared.");
+        });
+
+        this.contextMenu.addEventListener("click", (evt) => {
+          const action = evt.target.getAttribute("data-action");
+          if (!action || !this.contextNodeID) return;
+          const node = this.graph.getNode(this.contextNodeID);
+          if (!node) return;
+
+          if (action === "delete") {
+            this.graph.removeNode(node.id);
+            this.selectedNodeID = null;
+            this.setStatus(`Deleted ${node.type} (${node.id}).`);
+          }
+
+          if (action === "toggle-inputs") {
+            if (node.toggleInputCount()) {
+              this.graph.cleanupInvalidPinConnections(node.id);
+              this.graph.stabilizeAll();
+              this.setStatus(`Input count changed to ${node.inputCount} for ${node.id}.`);
+            } else {
+              this.setStatus("Input count cannot be changed for this component.", true);
+            }
+          }
+
+          this.hideContextMenu();
+        });
+
+        window.addEventListener("pointerdown", () => this.hideContextMenu());
+        window.addEventListener("resize", () => this.resize());
+      }
+
+      bindCanvasEvents() {
+        this.canvas.addEventListener("contextmenu", (evt) => {
+          evt.preventDefault();
+          const world = this.clientToWorld(evt.clientX, evt.clientY);
+          const node = this.pickNodeAt(world.x, world.y);
+          if (node) {
+            this.contextNodeID = node.id;
+            this.showContextMenu(evt.clientX, evt.clientY, node);
+          } else {
+            this.hideContextMenu();
+          }
+        });
+
+        this.canvas.addEventListener("pointerdown", (evt) => {
+          const world = this.clientToWorld(evt.clientX, evt.clientY);
+          this.interaction.mouseWorld = world;
+          this.interaction.clickStart = { x: world.x, y: world.y };
+
+          if (evt.button === 1 || (evt.button === 0 && evt.shiftKey)) {
+            this.interaction.panning = true;
+            this.interaction.panStart = { x: evt.clientX, y: evt.clientY };
+            this.canvas.style.cursor = "grabbing";
+            return;
+          }
+
+          if (evt.button !== 0) return;
+
+          const pinHit = this.pickPin(world.x, world.y);
+          if (pinHit && pinHit.kind === "output") {
+            this.interaction.connecting = {
+              sourceID: pinHit.node.id,
+              from: { ...pinHit.pin },
+              to: { x: world.x, y: world.y }
+            };
+            return;
+          }
+
+          const node = this.pickNodeAt(world.x, world.y);
+          if (node) {
+            this.selectedNodeID = node.id;
+            this.interaction.draggingNodeID = node.id;
+            this.interaction.dragOffset = {
+              x: world.x - node.x,
+              y: world.y - node.y
+            };
+          } else {
+            this.selectedNodeID = null;
+          }
+        });
+
+        this.canvas.addEventListener("pointermove", (evt) => {
+          const world = this.clientToWorld(evt.clientX, evt.clientY);
+          this.interaction.mouseWorld = world;
+
+          if (this.interaction.panning) {
+            const dx = evt.clientX - this.interaction.panStart.x;
+            const dy = evt.clientY - this.interaction.panStart.y;
+            this.viewport.tx += dx;
+            this.viewport.ty += dy;
+            this.interaction.panStart = { x: evt.clientX, y: evt.clientY };
+            return;
+          }
+
+          if (this.interaction.draggingNodeID) {
+            const node = this.graph.getNode(this.interaction.draggingNodeID);
+            if (!node) return;
+            node.setPosition(
+              snapToGrid(world.x - this.interaction.dragOffset.x),
+              snapToGrid(world.y - this.interaction.dragOffset.y)
+            );
+            return;
+          }
+
+          if (this.interaction.connecting) {
+            this.interaction.connecting.to = world;
+            const snap = this.findMagneticPin(world.x, world.y, PIN_SNAP_RADIUS);
+            this.interaction.snappedTarget = snap;
+            if (snap) {
+              this.interaction.connecting.to = { x: snap.pin.x, y: snap.pin.y };
+            }
+          }
+        });
+
+        this.canvas.addEventListener("pointerup", (evt) => {
+          const world = this.clientToWorld(evt.clientX, evt.clientY);
+
+          if (this.interaction.panning) {
+            this.interaction.panning = false;
+            this.canvas.style.cursor = "crosshair";
+            return;
+          }
+
+          const draggingNodeID = this.interaction.draggingNodeID;
+          this.interaction.draggingNodeID = null;
+
+          if (this.interaction.connecting) {
+            const sourceID = this.interaction.connecting.sourceID;
+            const snap = this.interaction.snappedTarget;
+            if (snap && snap.kind === "input") {
+              const result = this.graph.addConnection(sourceID, snap.node.id, snap.pin.index);
+              if (!result.ok) {
+                this.setStatus(result.reason, true);
+              } else {
+                this.setStatus("Connection created.");
+              }
+            }
+            this.interaction.connecting = null;
+            this.interaction.snappedTarget = null;
+            return;
+          }
+
+          if (evt.button === 0 && draggingNodeID) {
+            const node = this.graph.getNode(draggingNodeID);
+            if (!node) return;
+            const clickStart = this.interaction.clickStart;
+            if (node.type === "INPUT" && clickStart) {
+              const dragDistance = worldDistance({ x: clickStart.x, y: clickStart.y }, world);
+              if (dragDistance < 4) {
+                node.cycleState();
+                try {
+                  this.graph.propagateFrom(node.id);
+                } catch (err) {
+                  this.setStatus(err.message, true);
+                }
+                this.setStatus(`Input ${node.id} -> ${node.outputState === null ? "floating" : node.outputState}`);
+              }
+            }
+          }
+        });
+
+        this.canvas.addEventListener("wheel", (evt) => {
+          evt.preventDefault();
+          const pre = this.clientToWorld(evt.clientX, evt.clientY);
+          const delta = evt.deltaY < 0 ? 1.1 : 0.9;
+          const nextScale = Math.max(0.2, Math.min(3.5, this.viewport.scale * delta));
+          this.viewport.scale = nextScale;
+          this.viewport.tx = evt.clientX - pre.x * this.viewport.scale;
+          this.viewport.ty = evt.clientY - pre.y * this.viewport.scale;
+        }, { passive: false });
+      }
+
+      // Keeps both front and back buffers in sync with DPI scaling.
+      resize() {
+        const dpr = window.devicePixelRatio || 1;
+        const width = this.canvas.clientWidth || window.innerWidth;
+        const height = this.canvas.clientHeight || window.innerHeight;
+
+        this.canvas.width = Math.floor(width * dpr);
+        this.canvas.height = Math.floor(height * dpr);
+        this.backCanvas.width = this.canvas.width;
+        this.backCanvas.height = this.canvas.height;
+
+        this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        this.backCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      }
+
+      // Spawns a gate near the current viewport center.
+      addGate(type) {
+        const centerWorld = this.clientToWorld(window.innerWidth * 0.5, window.innerHeight * 0.5);
+        const x = snapToGrid(centerWorld.x - 40 + Math.random() * 40);
+        const y = snapToGrid(centerWorld.y - 30 + Math.random() * 40);
+
+        const id = makeId("g");
+        let node = null;
+        if (type === "AND") node = new AndGate(id, x, y, 2);
+        if (type === "OR") node = new OrGate(id, x, y, 2);
+        if (type === "NOT") node = new NotGate(id, x, y);
+        if (type === "XOR") node = new XorGate(id, x, y, 2);
+        if (type === "XNOR") node = new XnorGate(id, x, y, 2);
+
+        if (node) {
+          this.graph.addNode(node);
+          this.selectedNodeID = node.id;
+          this.setStatus(`${type} gate added.`);
+        }
+      }
+
+      // Adds a tri-state input source node.
+      addInput() {
+        const centerWorld = this.clientToWorld(window.innerWidth * 0.4, window.innerHeight * 0.4);
+        const node = new InputSource(makeId("i"), snapToGrid(centerWorld.x), snapToGrid(centerWorld.y));
+        this.graph.addNode(node);
+        this.setStatus("Input source added.");
+      }
+
+      // Adds a sink probe that displays its received logic state.
+      addOutput() {
+        const centerWorld = this.clientToWorld(window.innerWidth * 0.6, window.innerHeight * 0.5);
+        const node = new OutputProbe(makeId("o"), snapToGrid(centerWorld.x), snapToGrid(centerWorld.y));
+        this.graph.addNode(node);
+        this.setStatus("Output probe added.");
+      }
+
+      // Creates a tiny starter circuit for immediate interaction.
+      seedDemo() {
+        this.addInput();
+        this.addInput();
+        this.addGate("XOR");
+        this.addOutput();
+
+        const inputs = Array.from(this.graph.nodes.values()).filter((n) => n.type === "INPUT");
+        const xor = Array.from(this.graph.nodes.values()).find((n) => n.type === "XOR");
+        const out = Array.from(this.graph.nodes.values()).find((n) => n.type === "OUTPUT");
+
+        if (inputs[0] && xor) this.graph.addConnection(inputs[0].id, xor.id, 0);
+        if (inputs[1] && xor) this.graph.addConnection(inputs[1].id, xor.id, 1);
+        if (xor && out) this.graph.addConnection(xor.id, out.id, 0);
+
+        this.viewport.tx = window.innerWidth * 0.12;
+        this.viewport.ty = window.innerHeight * 0.18;
+      }
+
+      // Shows HTML context menu near cursor and toggles relevant actions.
+      showContextMenu(clientX, clientY, node) {
+        const toggleItem = this.contextMenu.querySelector("[data-action='toggle-inputs']");
+        toggleItem.style.display = (node.type === "AND" || node.type === "OR" || node.type === "XOR" || node.type === "XNOR") ? "block" : "none";
+
+        this.contextMenu.style.left = `${clientX + 6}px`;
+        this.contextMenu.style.top = `${clientY + 6}px`;
+        this.contextMenu.style.display = "block";
+      }
+
+      // Hides the context menu and clears selected context node.
+      hideContextMenu() {
+        this.contextMenu.style.display = "none";
+        this.contextNodeID = null;
+      }
+
+      // Inverse viewport transform: screen pointer to world coordinates.
+      clientToWorld(clientX, clientY) {
+        const rect = this.canvas.getBoundingClientRect();
+        const sx = clientX - rect.left;
+        const sy = clientY - rect.top;
+
+        // Screen-to-world conversion for transformed viewport:
+        // world = inverse(T * S) * screen
+        // wx = (sx - tx) / scale, wy = (sy - ty) / scale
+        return {
+          x: (sx - this.viewport.tx) / this.viewport.scale,
+          y: (sy - this.viewport.ty) / this.viewport.scale
+        };
+      }
+
+      // Forward viewport transform: world coordinates to on-screen pixels.
+      worldToScreen(wx, wy) {
+        return {
+          x: wx * this.viewport.scale + this.viewport.tx,
+          y: wy * this.viewport.scale + this.viewport.ty
+        };
+      }
+
+      // Returns top-most node hit by cursor using AABB collision.
+      pickNodeAt(wx, wy) {
+        const nodes = Array.from(this.graph.nodes.values());
+        for (let i = nodes.length - 1; i >= 0; i -= 1) {
+          const node = nodes[i];
+          if (node.hitTestAABB(wx, wy)) return node;
+        }
+        return null;
+      }
+
+      // Detects whether cursor is currently over any input/output pin.
+      pickPin(wx, wy) {
+        for (const node of this.graph.nodes.values()) {
+          if (node.outputPin) {
+            const d = worldDistance({ x: wx, y: wy }, node.outputPin);
+            if (d <= 8) return { node, pin: node.outputPin, kind: "output" };
+          }
+          for (const pin of node.inputPins) {
+            const d = worldDistance({ x: wx, y: wy }, pin);
+            if (d <= 8) return { node, pin, kind: "input" };
+          }
+        }
+        return null;
+      }
+
+      // Finds nearest input pin inside magnetic snap radius.
+      findMagneticPin(wx, wy, radius) {
+        let best = null;
+        for (const node of this.graph.nodes.values()) {
+          for (const pin of node.inputPins) {
+            const d = worldDistance({ x: wx, y: wy }, pin);
+            if (d <= radius && (!best || d < best.distance)) {
+              best = { node, pin, kind: "input", distance: d };
+            }
+          }
+        }
+        return best;
+      }
+
+      // Draws viewport-aware blueprint grid over the visible world area.
+      drawGrid(ctx) {
+        const width = this.canvas.clientWidth;
+        const height = this.canvas.clientHeight;
+        const left = -this.viewport.tx / this.viewport.scale;
+        const top = -this.viewport.ty / this.viewport.scale;
+        const right = (width - this.viewport.tx) / this.viewport.scale;
+        const bottom = (height - this.viewport.ty) / this.viewport.scale;
+
+        ctx.save();
+        ctx.lineWidth = 1 / this.viewport.scale;
+        ctx.strokeStyle = "#1c222d";
+        ctx.beginPath();
+
+        const startX = Math.floor(left / GRID_SIZE) * GRID_SIZE;
+        const endX = Math.ceil(right / GRID_SIZE) * GRID_SIZE;
+        for (let x = startX; x <= endX; x += GRID_SIZE) {
+          ctx.moveTo(x, top);
+          ctx.lineTo(x, bottom);
+        }
+
+        const startY = Math.floor(top / GRID_SIZE) * GRID_SIZE;
+        const endY = Math.ceil(bottom / GRID_SIZE) * GRID_SIZE;
+        for (let y = startY; y <= endY; y += GRID_SIZE) {
+          ctx.moveTo(left, y);
+          ctx.lineTo(right, y);
+        }
+
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // Draws Bezier wires and animated high-signal pulses.
+      drawConnections(ctx, timeMs) {
+        for (const edge of this.graph.edges.values()) {
+          const source = this.graph.getNode(edge.sourceID);
+          const target = this.graph.getNode(edge.targetID);
+          if (!source || !target) continue;
+
+          const p0 = source.outputPin;
+          const p3 = target.inputPins[edge.targetPinIndex];
+          if (!p0 || !p3) continue;
+
+          const dx = Math.max(44, Math.abs(p3.x - p0.x) * 0.5);
+          const p1 = { x: p0.x + dx, y: p0.y };
+          const p2 = { x: p3.x - dx, y: p3.y };
+
+          const c = signalColor(edge.signal);
+          const pulseActive = edge.signal === SIGNAL.HIGH;
+
+          ctx.save();
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = c;
+          ctx.shadowBlur = pulseActive ? 14 : 2;
+          ctx.shadowColor = c;
+          ctx.beginPath();
+          ctx.moveTo(p0.x, p0.y);
+          ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+          ctx.stroke();
+          ctx.restore();
+
+          if (pulseActive) {
+            for (let i = 0; i < 3; i += 1) {
+              const t = (timeMs * 0.00045 + edge.pulseOffset + i * 0.28) % 1;
+              const point = cubicBezierPoint(p0, p1, p2, p3, t);
+              ctx.save();
+              ctx.fillStyle = "#b3fbff";
+              ctx.shadowColor = "#00f2ff";
+              ctx.shadowBlur = 16;
+              ctx.beginPath();
+              ctx.arc(point.x, point.y, 2.4, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.restore();
+            }
+          }
+        }
+      }
+
+      // Draws one component body, pins, labels, and per-state glow.
+      drawNode(ctx, node) {
+        const selected = node.id === this.selectedNodeID;
+        const stroke = selected ? PALETTE.selected : "#32455a";
+        const glow = node.outputState === SIGNAL.HIGH ? PALETTE.high : stroke;
+
+        ctx.save();
+        ctx.translate(node.x, node.y);
+
+        ctx.shadowBlur = node.outputState === SIGNAL.HIGH ? 15 : 3;
+        ctx.shadowColor = glow;
+
+        drawRoundedRect(ctx, 0, 0, node.width, node.height, 10);
+        ctx.fillStyle = "rgba(15, 21, 31, 0.96)";
+        ctx.fill();
+        ctx.lineWidth = selected ? 2.4 : 1.2;
+        ctx.strokeStyle = stroke;
+        ctx.stroke();
+
+        ctx.restore();
+
+        if (node.type !== "INPUT" && node.type !== "OUTPUT") {
+          ctx.save();
+          const cx = node.x + node.width * 0.52;
+          const cy = node.y + node.height * 0.5;
+          ctx.translate(cx, cy);
+          ctx.scale(1.18, 1.18);
+          ctx.lineWidth = 1.4;
+          ctx.strokeStyle = "#b6cbe0";
+          const path = new Path2D(ICON_PATHS[node.type] || "");
+          ctx.stroke(path);
+          ctx.restore();
+        }
+
+        if (node.type === "INPUT") {
+          ctx.save();
+          ctx.fillStyle = signalColor(node.outputState);
+          ctx.font = "bold 12px Consolas, monospace";
+          ctx.textAlign = "center";
+          ctx.fillText(node.outputState === null ? "Z" : String(node.outputState), node.x + node.width * 0.48, node.y + node.height * 0.57);
+          ctx.restore();
+        }
+
+        if (node.type === "OUTPUT") {
+          ctx.save();
+          ctx.fillStyle = signalColor(node.outputState);
+          ctx.beginPath();
+          ctx.arc(node.x + node.width * 0.58, node.y + node.height * 0.5, 8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        for (const pin of node.inputPins) {
+          const color = signalColor(node.inputStates[pin.index]);
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(pin.x, pin.y, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        if (node.outputPin) {
+          ctx.save();
+          ctx.fillStyle = signalColor(node.outputState);
+          ctx.beginPath();
+          ctx.arc(node.outputPin.x, node.outputPin.y, 4.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        ctx.save();
+        ctx.fillStyle = "#94a9bc";
+        ctx.font = "10px Consolas, monospace";
+        ctx.textAlign = "left";
+        ctx.fillText(`${node.type} ${node.id}`, node.x + 6, node.y - 6);
+        ctx.restore();
+      }
+
+      // Draws temporary wire while user is dragging a connection.
+      drawConnectPreview(ctx) {
+        const link = this.interaction.connecting;
+        if (!link) return;
+
+        const p0 = link.from;
+        const p3 = link.to;
+        const dx = Math.max(40, Math.abs(p3.x - p0.x) * 0.5);
+        const p1 = { x: p0.x + dx, y: p0.y };
+        const p2 = { x: p3.x - dx, y: p3.y };
+
+        ctx.save();
+        ctx.setLineDash([8 / this.viewport.scale, 6 / this.viewport.scale]);
+        ctx.lineWidth = 2.2;
+        ctx.strokeStyle = "#13d1a5";
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "#13d1a5";
+        ctx.beginPath();
+        ctx.moveTo(p0.x, p0.y);
+        ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+        ctx.stroke();
+        ctx.restore();
+
+        const snap = this.interaction.snappedTarget;
+        if (snap) {
+          ctx.save();
+          ctx.strokeStyle = "#13d1a5";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(snap.pin.x, snap.pin.y, 8, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+
+      // Frame renderer: clear buffer, draw world layers, blit to screen.
+      render(timeMs) {
+        const ctx = this.backCtx;
+        const width = this.canvas.clientWidth;
+        const height = this.canvas.clientHeight;
+
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, width, height);
+        ctx.fillStyle = "#0b0e14";
+        ctx.fillRect(0, 0, width, height);
+        ctx.restore();
+
+        ctx.save();
+        // Layered world transform driven by 2D matrix (pan + zoom).
+        ctx.setTransform(this.viewport.scale, 0, 0, this.viewport.scale, this.viewport.tx, this.viewport.ty);
+
+        this.drawGrid(ctx);      // Layer 1: blueprint grid.
+        this.drawConnections(ctx, timeMs); // Layer 2: Bezier wires + pulse.
+        for (const node of this.graph.nodes.values()) {
+          this.drawNode(ctx, node); // Layer 3: gate glyphs and glow.
+        }
+        this.drawConnectPreview(ctx);
+        ctx.restore();
+
+        this.ctx.save();
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
+        this.ctx.clearRect(0, 0, width, height);
+        this.ctx.drawImage(this.backCanvas, 0, 0, width, height);
+        this.ctx.restore();
+
+        requestAnimationFrame((t) => this.render(t));
+      }
+    }
+
+    // Utility for rounded gate body panels.
+    function drawRoundedRect(ctx, x, y, width, height, radius) {
+      const r = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + width - r, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+      ctx.lineTo(x + width, y + height - r);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+      ctx.lineTo(x + r, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    // Samples a point on a cubic Bezier at normalized t in [0,1].
+    function cubicBezierPoint(p0, p1, p2, p3, t) {
+      const u = 1 - t;
+      const tt = t * t;
+      const uu = u * u;
+      const uuu = uu * u;
+      const ttt = tt * t;
+
+      return {
+        x: (uuu * p0.x) + (3 * uu * t * p1.x) + (3 * u * tt * p2.x) + (ttt * p3.x),
+        y: (uuu * p0.y) + (3 * uu * t * p1.y) + (3 * u * tt * p2.y) + (ttt * p3.y)
+      };
+    }
+
+    new AppController();
+  </script>
+</body>
+</html>
